@@ -230,7 +230,6 @@ function renderColumn(status, elementId) {
 
     const dueText = formatDueDate(task.dueDate);
     const notesText = task.notes ? `<div class="task-notes">${escapeHtml(task.notes)}</div>` : "";
-    const updatedText = new Date(task.updatedAt).toLocaleString();
     const recurrenceText = task.isRecurring
       ? `<span class="badge recurrence-badge">${escapeHtml(task.recurrenceType)} • every ${task.recurrenceInterval}</span>`
       : "";
@@ -248,7 +247,6 @@ function renderColumn(status, elementId) {
         ${recurrenceText}
       </div>
       ${notesText}
-      <div class="task-footer">Updated: ${escapeHtml(updatedText)}</div>
       <div class="task-actions">
         <button class="btn btn-secondary edit-btn" data-id="${task.id}">Edit</button>
         <button class="btn btn-danger delete-btn" data-id="${task.id}">Delete</button>
