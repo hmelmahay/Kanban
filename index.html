@@ -1,12 +1,95 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Kanban</title>
-  </head>
-  <body>
-    <h1>Kanban app is live</h1>
-    <p>If you see this normally, your Vercel site is working.</p>
-  </body>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kanban Board</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1>Kanban Board</h1>
+      <p class="subtitle">Simple local board with browser save</p>
+    </div>
+    <div class="topbar-actions">
+      <button id="clearBoardBtn" class="btn btn-secondary">Clear Board</button>
+    </div>
+  </header>
+
+  <main class="app-shell">
+    <section class="add-task-card">
+      <h2>Add Task</h2>
+      <div class="form-grid">
+        <div class="field field-wide">
+          <label for="taskTitle">Task title</label>
+          <input id="taskTitle" type="text" placeholder="Enter a task" />
+        </div>
+
+        <div class="field">
+          <label for="taskOwner">Owner</label>
+          <input id="taskOwner" type="text" placeholder="Optional" />
+        </div>
+
+        <div class="field">
+          <label for="taskPriority">Priority</label>
+          <select id="taskPriority">
+            <option>High</option>
+            <option selected>Medium</option>
+            <option>Low</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="taskDueDate">Due date</label>
+          <input id="taskDueDate" type="date" />
+        </div>
+
+        <div class="field field-wide">
+          <label for="taskNotes">Notes</label>
+          <textarea id="taskNotes" rows="3" placeholder="Optional notes"></textarea>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button id="addTaskBtn" class="btn btn-primary">Add Task</button>
+      </div>
+    </section>
+
+    <section class="board-toolbar">
+      <div class="search-wrap">
+        <input id="searchInput" type="text" placeholder="Search tasks" />
+      </div>
+      <div class="hint">Drag tasks between columns</div>
+    </section>
+
+    <section class="board" id="board">
+      <div class="column" data-status="todo">
+        <div class="column-header">
+          <h3>To Do</h3>
+          <span class="count" id="count-todo">0</span>
+        </div>
+        <div class="column-body" id="todoColumn"></div>
+      </div>
+
+      <div class="column" data-status="doing">
+        <div class="column-header">
+          <h3>Doing</h3>
+          <span class="count" id="count-doing">0</span>
+        </div>
+        <div class="column-body" id="doingColumn"></div>
+      </div>
+
+      <div class="column" data-status="done">
+        <div class="column-header">
+          <h3>Done</h3>
+          <span class="count" id="count-done">0</span>
+        </div>
+        <div class="column-body" id="doneColumn"></div>
+      </div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
 </html>
