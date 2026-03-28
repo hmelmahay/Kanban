@@ -9,8 +9,9 @@ let db       = null;   // Supabase client (null = localStorage mode)
 let boards   = [];     // [{id, name}]
 let tasks    = [];     // current board's tasks
 let boardId  = null;   // active board id
-let formVisible = true;
-let draggedId   = null;
+let formVisible    = true;
+let draggedId      = null;
+let allBoardsMode  = false;
 
 const BOARDS_KEY = 'kanban_boards_v2';
 const tasksKey   = id => `kanban_tasks_v2_${id}`;
@@ -112,12 +113,31 @@ async function deleteBoard() {
 
 function renderBoardSelect() {
   const sel = document.getElementById('boardSelect');
-  sel.innerHTML = boards.map(b =>
-    `<option value="${escAttr(b.id)}">${escHtml(b.name)}</option>`
-  ).join('');
+  sel.innerHTML = `<option value="__all__">All Boards</option>` +
+    boards.map(b => `<option value="${escAttr(b.id)}">${escHtml(b.name)}</option>`).join('');
+}
+
+function setAllBoardsUI() {
+  const isAll = allBoardsMode;
+  document.getElementById('formBar').style.display = (isAll || !formVisible) ? 'none' : '';
+  document.getElementById('toggleFormBtn').style.display = isAll ? 'none' : '';
+  document.getElementById('renameBoardBtn').disabled = isAll;
+  document.getElementById('deleteBoardBtn').disabled = isAll;
 }
 
 // ── Tasks ─────────────────────────────────────────────────────────────────────
+
+async function loadAllTasks() {
+  if (db) {
+    const { data, error } = await db.from('tasks').select('*').order('created_at');
+    if (!error) tasks = data;
+  } else {
+    tasks = boards.flatMap(b =>
+      JSON.parse(localStorage.getItem(tasksKey(b.id)) || '[]')
+    );
+  }
+  renderAll();
+}
 
 async function loadTasks() {
   if (db) {
@@ -160,7 +180,7 @@ async function updateTask(id, changes) {
   }
   const t = tasks.find(t => t.id === id);
   if (t) Object.assign(t, changes);
-  if (!db) saveTasks();
+  if (!db) saveTasksFor(t?.board_id || boardId);
 
   // Spawn next occurrence when a recurring task is completed
   if (changes.status === 'done' && t?.recurring && t?.due_date) {
@@ -195,13 +215,19 @@ async function deleteTask(id) {
     const { error } = await db.from('tasks').delete().eq('id', id);
     if (error) { alert('Error deleting task: ' + error.message); return; }
   }
+  const deleted = tasks.find(t => t.id === id);
   tasks = tasks.filter(t => t.id !== id);
-  if (!db) saveTasks();
+  if (!db) saveTasksFor(deleted?.board_id || boardId);
   renderAll();
 }
 
 function saveTasks() {
   localStorage.setItem(tasksKey(boardId), JSON.stringify(tasks));
+}
+
+function saveTasksFor(bid) {
+  const boardTasks = tasks.filter(t => t.board_id === bid);
+  localStorage.setItem(tasksKey(bid), JSON.stringify(boardTasks));
 }
 
 // ── Render ────────────────────────────────────────────────────────────────────
@@ -228,7 +254,14 @@ function renderAll() {
 
   STATUSES.forEach(status => {
     const col = document.getElementById('col-' + status);
-    const colTasks = visible.filter(t => t.status === status);
+    const colTasks = visible
+      .filter(t => t.status === status)
+      .sort((a, b) => {
+        if (!a.due_date && !b.due_date) return 0;
+        if (!a.due_date) return 1;
+        if (!b.due_date) return -1;
+        return a.due_date.localeCompare(b.due_date);
+      });
     document.getElementById('count-' + status).textContent =
       tasks.filter(t => t.status === status).length;
 
@@ -275,6 +308,7 @@ function renderTask(t) {
       <div class="task-title">${escHtml(t.title)}</div>
       <div class="task-meta">
         <span class="badge priority-${t.priority}">${t.priority}</span>
+        ${allBoardsMode ? `<span class="badge badge-board">${escHtml(boards.find(b => b.id === t.board_id)?.name || '')}</span>` : ''}
         ${due ? `<span class="badge ${overdue ? 'badge-overdue' : 'badge-date'}">${overdue ? 'Overdue: ' : ''}${due}</span>` : ''}
         ${t.recurring ? `<span class="badge badge-recurring">${t.recurring.charAt(0).toUpperCase() + t.recurring.slice(1)}</span>` : ''}
       </div>
@@ -349,9 +383,15 @@ document.getElementById('taskTitle').addEventListener('keydown', e => {
 // ── Board controls ────────────────────────────────────────────────────────────
 
 document.getElementById('boardSelect').addEventListener('change', async e => {
-  boardId = e.target.value;
-  localStorage.setItem('kanban_active_board', boardId);
-  await loadTasks();
+  allBoardsMode = e.target.value === '__all__';
+  if (allBoardsMode) {
+    await loadAllTasks();
+  } else {
+    boardId = e.target.value;
+    localStorage.setItem('kanban_active_board', boardId);
+    await loadTasks();
+  }
+  setAllBoardsUI();
 });
 
 document.getElementById('newBoardBtn').addEventListener('click', async () => {
