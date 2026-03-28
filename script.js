@@ -372,7 +372,7 @@ document.getElementById('addTaskBtn').addEventListener('click', async () => {
   document.getElementById('taskNotes').value     = '';
   document.getElementById('taskRecurring').value = '';
   document.getElementById('taskPriority').value  = 'Medium';
-  document.getElementById('taskStatus').value    = 'backlog';
+  document.getElementById('taskStatus').value    = 'todo';
   document.getElementById('taskTitle').focus();
 });
 
