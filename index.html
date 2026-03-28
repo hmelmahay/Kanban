@@ -10,7 +10,7 @@
   <header class="topbar">
     <div class="title-wrap">
       <h1>Kanban Board</h1>
-      <p class="subtitle">Compact board with multiple boards, recurring weekly tasks, filters, and backup</p>
+      <p class="subtitle">Compact board with multiple boards, recurring tasks, filters, and backup</p>
     </div>
 
     <div class="topbar-actions">
@@ -45,18 +45,13 @@
         <h2 id="formTitle">Add Task</h2>
       </div>
 
-      <div class="form-grid compact-grid">
-        <div class="field field-wide">
-          <label for="taskTitle">Task title</label>
+      <div class="form-grid dense-form-grid">
+        <div class="field title-field">
+          <label for="taskTitle">Task</label>
           <input id="taskTitle" type="text" placeholder="Enter a task" />
         </div>
 
-        <div class="field">
-          <label for="taskOwner">Owner</label>
-          <input id="taskOwner" type="text" placeholder="Optional" />
-        </div>
-
-        <div class="field">
+        <div class="field short-field">
           <label for="taskPriority">Priority</label>
           <select id="taskPriority">
             <option>High</option>
@@ -65,12 +60,12 @@
           </select>
         </div>
 
-        <div class="field">
-          <label for="taskDueDate">Due date</label>
+        <div class="field short-field">
+          <label for="taskDueDate">Due</label>
           <input id="taskDueDate" type="date" />
         </div>
 
-        <div class="field">
+        <div class="field short-field">
           <label for="taskStatus">Status</label>
           <select id="taskStatus">
             <option value="backlog" selected>Backlog</option>
@@ -80,42 +75,36 @@
           </select>
         </div>
 
-        <div class="field field-checkbox">
-          <label class="checkbox-row">
-            <input id="taskRecurring" type="checkbox" />
-            <span>Recurring</span>
-          </label>
-        </div>
+        <div class="field recurring-inline-field">
+          <label>Recurring</label>
+          <div class="recurring-inline-wrap">
+            <label class="checkbox-inline tight-checkbox">
+              <input id="taskRecurring" type="checkbox" />
+              <span>Recurring</span>
+            </label>
 
-        <div id="recurrenceFields" class="recurrence-grid hidden">
-          <div class="field">
-            <label for="taskRecurrenceInterval">Every</label>
-            <input id="taskRecurrenceInterval" type="number" min="1" value="1" />
-          </div>
+            <div id="recurrenceFields" class="recurrence-inline hidden">
+              <select id="taskRecurrenceType">
+                <option value="daily">Daily</option>
+                <option value="weekly" selected>Weekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="yearly">Yearly</option>
+              </select>
 
-          <div class="field">
-            <label for="taskRecurrenceDay">Day</label>
-            <select id="taskRecurrenceDay">
-              <option value="0">Sun</option>
-              <option value="1">Mon</option>
-              <option value="2">Tue</option>
-              <option value="3">Wed</option>
-              <option value="4">Thu</option>
-              <option value="5" selected>Fri</option>
-              <option value="6">Sat</option>
-            </select>
+              <input id="taskRecurrenceInterval" type="number" min="1" value="1" />
+            </div>
           </div>
         </div>
 
-        <div class="field field-wide field-full">
+        <div class="field notes-field">
           <label for="taskNotes">Notes</label>
-          <textarea id="taskNotes" rows="2" placeholder="Optional notes"></textarea>
+          <input id="taskNotes" type="text" placeholder="Optional notes" />
         </div>
-      </div>
 
-      <div class="form-actions compact-actions">
-        <button id="cancelEditBtn" class="btn btn-secondary hidden">Cancel Edit</button>
-        <button id="saveTaskBtn" class="btn btn-primary">Add Task</button>
+        <div class="form-actions inline-actions">
+          <button id="cancelEditBtn" class="btn btn-secondary hidden">Cancel Edit</button>
+          <button id="saveTaskBtn" class="btn btn-primary">Add Task</button>
+        </div>
       </div>
     </section>
 
@@ -130,10 +119,6 @@
           <option value="High">High</option>
           <option value="Medium">Medium</option>
           <option value="Low">Low</option>
-        </select>
-
-        <select id="ownerFilter">
-          <option value="all">All Owners</option>
         </select>
       </div>
     </section>
