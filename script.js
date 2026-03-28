@@ -1,14 +1,14 @@
 // ── Supabase config ───────────────────────────────────────────────────────────
 // Paste your Supabase project URL and anon key here.
 // Leave blank to use localStorage only.
-const SUPABASE_URL  = '';
-const SUPABASE_KEY  = '';
+const SUPABASE_URL  = 'https://sztatmknjyzzyzngvpff.supabase.co';
+const SUPABASE_KEY  = 'sb_publishable_GvPXZ8AVgix3aZ2UDS0YRQ_ktlLvMtB';
 
 // ── State ─────────────────────────────────────────────────────────────────────
-let db       = null;   // Supabase client (null = localStorage mode)
-let boards   = [];     // [{id, name}]
-let tasks    = [];     // current board's tasks
-let boardId  = null;   // active board id
+let db       = null;
+let boards   = [];
+let tasks    = [];
+let boardId  = null;
 let formVisible = true;
 let draggedId   = null;
 
@@ -21,7 +21,6 @@ async function initSupabase() {
   if (!SUPABASE_URL || !SUPABASE_KEY) return false;
   try {
     db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    // Verify connection
     const { error } = await db.from('boards').select('id').limit(1);
     if (error) throw error;
     setStatus('Connected to Supabase');
@@ -185,7 +184,6 @@ function renderAll() {
     return matchQ && matchP;
   });
 
-  // Stats
   document.getElementById('statTotal').textContent   = tasks.length;
   document.getElementById('statOpen').textContent    = tasks.filter(t => t.status === 'todo').length;
   document.getElementById('statBlocked').textContent = tasks.filter(t => t.status === 'doing').length;
@@ -303,7 +301,7 @@ document.getElementById('addTaskBtn').addEventListener('click', async () => {
   document.getElementById('taskNotes').value     = '';
   document.getElementById('taskRecurring').checked = false;
   document.getElementById('taskPriority').value  = 'Medium';
-  document.getElementById('taskStatus').value    = 'backlog';
+  document.getElementById('taskStatus').value    = 'todo';
   document.getElementById('taskTitle').focus();
 });
 
