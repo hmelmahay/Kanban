@@ -10,16 +10,22 @@
   <header class="topbar">
     <div>
       <h1>Kanban Board</h1>
-      <p class="subtitle">Simple local board with browser save</p>
+      <p class="subtitle">Kanban board with edit, filters, backup, and recurring weekly tasks</p>
     </div>
     <div class="topbar-actions">
+      <button id="exportBtn" class="btn btn-secondary">Export</button>
+      <label class="btn btn-secondary import-label">
+        Import
+        <input id="importFile" type="file" accept=".json" hidden />
+      </label>
       <button id="clearBoardBtn" class="btn btn-secondary">Clear Board</button>
     </div>
   </header>
 
   <main class="app-shell">
-    <section class="add-task-card">
-      <h2>Add Task</h2>
+    <section class="panel add-task-card">
+      <h2 id="formTitle">Add Task</h2>
+
       <div class="form-grid">
         <div class="field field-wide">
           <label for="taskTitle">Task title</label>
@@ -45,39 +51,116 @@
           <input id="taskDueDate" type="date" />
         </div>
 
+        <div class="field">
+          <label for="taskStatus">Status</label>
+          <select id="taskStatus">
+            <option value="backlog" selected>Backlog</option>
+            <option value="inprogress">In Progress</option>
+            <option value="blocked">Blocked</option>
+            <option value="done">Done</option>
+          </select>
+        </div>
+
+        <div class="field field-checkbox">
+          <label class="checkbox-row">
+            <input id="taskRecurring" type="checkbox" />
+            <span>Recurring task</span>
+          </label>
+        </div>
+
+        <div id="recurrenceFields" class="recurrence-grid hidden">
+          <div class="field">
+            <label for="taskRecurrenceInterval">Repeat every</label>
+            <input id="taskRecurrenceInterval" type="number" min="1" value="1" />
+          </div>
+
+          <div class="field">
+            <label for="taskRecurrenceDay">On</label>
+            <select id="taskRecurrenceDay">
+              <option value="0">Sunday</option>
+              <option value="1">Monday</option>
+              <option value="2">Tuesday</option>
+              <option value="3">Wednesday</option>
+              <option value="4">Thursday</option>
+              <option value="5" selected>Friday</option>
+              <option value="6">Saturday</option>
+            </select>
+          </div>
+        </div>
+
         <div class="field field-wide">
           <label for="taskNotes">Notes</label>
-          <textarea id="taskNotes" rows="3" placeholder="Optional notes"></textarea>
+          <textarea id="taskNotes" rows="4" placeholder="Optional notes"></textarea>
         </div>
       </div>
 
       <div class="form-actions">
-        <button id="addTaskBtn" class="btn btn-primary">Add Task</button>
+        <button id="cancelEditBtn" class="btn btn-secondary hidden">Cancel Edit</button>
+        <button id="saveTaskBtn" class="btn btn-primary">Add Task</button>
       </div>
     </section>
 
-    <section class="board-toolbar">
-      <div class="search-wrap">
+    <section class="panel toolbar">
+      <div class="toolbar-left">
         <input id="searchInput" type="text" placeholder="Search tasks" />
       </div>
-      <div class="hint">Drag tasks between columns</div>
+
+      <div class="toolbar-right">
+        <select id="priorityFilter">
+          <option value="all">All Priorities</option>
+          <option value="High">High</option>
+          <option value="Medium">Medium</option>
+          <option value="Low">Low</option>
+        </select>
+
+        <select id="ownerFilter">
+          <option value="all">All Owners</option>
+        </select>
+      </div>
     </section>
 
-    <section class="board" id="board">
-      <div class="column" data-status="todo">
+    <section class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Total</div>
+        <div class="stat-value" id="statTotal">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Open</div>
+        <div class="stat-value" id="statOpen">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Blocked</div>
+        <div class="stat-value" id="statBlocked">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Done</div>
+        <div class="stat-value" id="statDone">0</div>
+      </div>
+    </section>
+
+    <section class="board">
+      <div class="column" data-status="backlog">
         <div class="column-header">
-          <h3>To Do</h3>
-          <span class="count" id="count-todo">0</span>
+          <h3>Backlog</h3>
+          <span class="count" id="count-backlog">0</span>
         </div>
-        <div class="column-body" id="todoColumn"></div>
+        <div class="column-body" id="backlogColumn"></div>
       </div>
 
-      <div class="column" data-status="doing">
+      <div class="column" data-status="inprogress">
         <div class="column-header">
-          <h3>Doing</h3>
-          <span class="count" id="count-doing">0</span>
+          <h3>In Progress</h3>
+          <span class="count" id="count-inprogress">0</span>
         </div>
-        <div class="column-body" id="doingColumn"></div>
+        <div class="column-body" id="inprogressColumn"></div>
+      </div>
+
+      <div class="column" data-status="blocked">
+        <div class="column-header">
+          <h3>Blocked</h3>
+          <span class="count" id="count-blocked">0</span>
+        </div>
+        <div class="column-body" id="blockedColumn"></div>
       </div>
 
       <div class="column" data-status="done">
