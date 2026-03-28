@@ -282,6 +282,7 @@ textarea::placeholder {
   display: grid;
   gap: 8px;
   grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: start;
 }
 
 .column {
@@ -316,16 +317,20 @@ textarea::placeholder {
 
 .column-body {
   display: grid;
-  gap: 6px;
+  gap: 4px;
   min-height: 240px;
+  align-content: start;
 }
 
 .task {
   border: 1px solid var(--border);
   border-radius: 10px;
   background: var(--panel);
-  padding: 8px;
+  padding: 6px 7px;
   cursor: grab;
+  height: auto;
+  min-height: 0;
+  display: block;
 }
 
 .task:active {
@@ -334,43 +339,45 @@ textarea::placeholder {
 
 .task-title {
   font-weight: 700;
-  margin-bottom: 4px;
-  font-size: 13px;
-  line-height: 1.2;
+  margin-bottom: 3px;
+  font-size: 12px;
+  line-height: 1.15;
 }
 
 .task-meta,
 .task-notes,
 .task-footer {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--muted);
 }
 
 .task-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
-  margin-bottom: 4px;
+  gap: 3px;
+  margin-bottom: 3px;
 }
 
 .task-notes {
-  margin-bottom: 4px;
+  margin-bottom: 3px;
   white-space: pre-wrap;
-  line-height: 1.2;
+  line-height: 1.15;
 }
 
 .task-footer {
-  margin-bottom: 6px;
-  font-size: 10px;
+  margin-bottom: 4px;
+  font-size: 9px;
+  line-height: 1.1;
 }
 
 .badge {
   display: inline-flex;
   align-items: center;
   border-radius: 999px;
-  padding: 2px 6px;
-  font-size: 10px;
+  padding: 1px 5px;
+  font-size: 9px;
   font-weight: 700;
+  line-height: 1.1;
 }
 
 .priority-high {
@@ -421,12 +428,13 @@ textarea::placeholder {
 .task-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 5px;
+  gap: 4px;
 }
 
 .task-actions .btn {
-  padding: 5px 8px;
-  font-size: 11px;
+  padding: 4px 7px;
+  font-size: 10px;
+  line-height: 1;
 }
 
 .empty-state {
