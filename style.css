@@ -29,7 +29,7 @@ h1, h2, h3, p {
 
 h1 { font-size: 24px; }
 h2 { font-size: 18px; }
-h3 { font-size: 15px; }
+h3 { font-size: 14px; }
 
 .hidden {
   display: none !important;
@@ -264,7 +264,7 @@ textarea::placeholder {
 }
 
 .stat-card {
-  padding: 10px 12px;
+  padding: 9px 11px;
 }
 
 .stat-label {
@@ -273,20 +273,20 @@ textarea::placeholder {
 }
 
 .stat-value {
-  margin-top: 2px;
-  font-size: 22px;
+  margin-top: 1px;
+  font-size: 20px;
   font-weight: 700;
 }
 
 .board {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .column {
-  padding: 10px;
-  min-height: 320px;
+  padding: 8px;
+  min-height: 300px;
   background: #0b1220;
 }
 
@@ -299,12 +299,12 @@ textarea::placeholder {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .count {
-  min-width: 24px;
-  height: 24px;
+  min-width: 22px;
+  height: 22px;
   display: inline-grid;
   place-items: center;
   border-radius: 999px;
@@ -316,15 +316,15 @@ textarea::placeholder {
 
 .column-body {
   display: grid;
-  gap: 8px;
-  min-height: 250px;
+  gap: 6px;
+  min-height: 240px;
 }
 
 .task {
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 10px;
   background: var(--panel);
-  padding: 10px;
+  padding: 8px;
   cursor: grab;
 }
 
@@ -334,41 +334,42 @@ textarea::placeholder {
 
 .task-title {
   font-weight: 700;
-  margin-bottom: 6px;
-  font-size: 14px;
+  margin-bottom: 4px;
+  font-size: 13px;
   line-height: 1.2;
 }
 
 .task-meta,
 .task-notes,
 .task-footer {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--muted);
 }
 
 .task-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 6px;
+  gap: 4px;
+  margin-bottom: 4px;
 }
 
 .task-notes {
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   white-space: pre-wrap;
-  line-height: 1.3;
+  line-height: 1.2;
 }
 
 .task-footer {
-  margin-bottom: 8px;
+  margin-bottom: 6px;
+  font-size: 10px;
 }
 
 .badge {
   display: inline-flex;
   align-items: center;
   border-radius: 999px;
-  padding: 3px 7px;
-  font-size: 11px;
+  padding: 2px 6px;
+  font-size: 10px;
   font-weight: 700;
 }
 
@@ -412,20 +413,30 @@ textarea::placeholder {
   color: #67e8f9;
 }
 
+.due-today-badge {
+  background: rgba(250, 204, 21, 0.18);
+  color: #fde68a;
+}
+
 .task-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 6px;
+  gap: 5px;
+}
+
+.task-actions .btn {
+  padding: 5px 8px;
+  font-size: 11px;
 }
 
 .empty-state {
   border: 1px dashed var(--border);
-  border-radius: 12px;
-  padding: 12px;
+  border-radius: 10px;
+  padding: 10px;
   text-align: center;
   color: var(--muted);
   background: var(--panel);
-  font-size: 12px;
+  font-size: 11px;
 }
 
 @media (max-width: 1400px) {
