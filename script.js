@@ -1,92 +1,48 @@
-const STORAGE_KEY = "kanban-board-v6";
-const DEFAULT_BOARD_ID = "board-1";
+const supabaseUrl = window.SUPABASE_URL || "{{SUPABASE_URL}}";
+const supabaseAnonKey = window.SUPABASE_ANON_KEY || "{{SUPABASE_ANON_KEY}}";
 
-const starterData = {
-  boards: [
-    {
-      id: DEFAULT_BOARD_ID,
-      name: "Main Board",
-      tasks: [
-        {
-          id: 1,
-          title: "Send weekly update",
-          priority: "High",
-          dueDate: "",
-          notes: "Recurring every week.",
-          status: "backlog",
-          isRecurring: true,
-          recurrenceType: "weekly",
-          recurrenceInterval: 1,
-          recurrenceSourceId: null,
-          createdAt: Date.now() - 50000,
-          updatedAt: Date.now() - 50000
-        },
-        {
-          id: 2,
-          title: "Plan next sprint",
-          priority: "Medium",
-          dueDate: "",
-          notes: "",
-          status: "inprogress",
-          isRecurring: false,
-          recurrenceType: "weekly",
-          recurrenceInterval: 1,
-          recurrenceSourceId: null,
-          createdAt: Date.now() - 40000,
-          updatedAt: Date.now() - 40000
-        }
-      ]
-    }
-  ],
-  activeBoardId: DEFAULT_BOARD_ID,
+// Vercel env vars are not directly available in plain browser JS.
+// Put your real values here once after deploy, OR move to a build-based setup later.
+// For now, replace the placeholders below with your actual values if needed.
+const SUPABASE_URL =
+  supabaseUrl === "{{SUPABASE_URL}}"
+    ? "https://sztatmknjyzzyzngvpff.supabase.co"
+    : supabaseUrl;
+
+const SUPABASE_ANON_KEY =
+  supabaseAnonKey === "{{SUPABASE_ANON_KEY}}"
+    ? "sb_publishable_GvPXZ8AVgix3aZ2UDS0YRQ_ktlLvMtB"
+    : supabaseAnonKey;
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let data = {
+  boards: [],
+  activeBoardId: null,
   formVisible: true
 };
 
-let data = loadData();
 let searchTerm = "";
 let draggedTaskId = null;
 let editingTaskId = null;
 
-function loadData() {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if (parsed && Array.isArray(parsed.boards) && parsed.boards.length) {
-      if (!parsed.activeBoardId) parsed.activeBoardId = parsed.boards[0].id;
-      if (typeof parsed.formVisible !== "boolean") parsed.formVisible = true;
-      return parsed;
-    }
-  } catch (e) {}
-  return structuredClone(starterData);
-}
-
-function saveData() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-}
-
 function getActiveBoard() {
-  return data.boards.find(board => board.id === data.activeBoardId) || data.boards[0];
+  return data.boards.find(board => board.id === data.activeBoardId) || data.boards[0] || null;
 }
 
 function getTasks() {
-  return getActiveBoard().tasks;
+  const board = getActiveBoard();
+  return board ? board.tasks : [];
 }
 
 function setTasks(tasks) {
-  getActiveBoard().tasks = tasks;
-}
-
-function nextTaskId() {
-  const tasks = getTasks();
-  return tasks.length ? Math.max(...tasks.map(task => task.id)) + 1 : 1;
-}
-
-function nextBoardId() {
-  return "board-" + Date.now();
+  const board = getActiveBoard();
+  if (board) board.tasks = tasks;
 }
 
 function formatDueDate(value) {
   if (!value) return "";
-  const date = new Date(value + "T12:00:00");
+  const date = new Date(`${value}T12:00:00`);
   return date.toLocaleDateString();
 }
 
@@ -112,28 +68,111 @@ function todayString() {
 }
 
 function isDueToday(task) {
-  return !!task.dueDate && task.dueDate === todayString();
+  return !!task.due_date && task.due_date === todayString();
 }
 
-function autoMoveDueTodayTasks() {
-  let changed = false;
+function normalizeTask(row) {
+  return {
+    id: row.id,
+    board_id: row.board_id,
+    title: row.title,
+    priority: row.priority,
+    due_date: row.due_date,
+    notes: row.notes || "",
+    status: row.status,
+    is_recurring: !!row.is_recurring,
+    recurrence_type: row.recurrence_type || "weekly",
+    recurrence_interval: row.recurrence_interval || 1,
+    recurrence_source_id: row.recurrence_source_id,
+    created_at: row.created_at,
+    updated_at: row.updated_at
+  };
+}
+
+async function ensureMainBoard() {
+  const { data: boards, error } = await supabase
+    .from("boards")
+    .select("*")
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    console.error(error);
+    alert("Could not load boards from Supabase.");
+    return [];
+  }
+
+  if (boards.length) return boards;
+
+  const { data: inserted, error: insertError } = await supabase
+    .from("boards")
+    .insert([{ name: "Main Board" }])
+    .select();
+
+  if (insertError) {
+    console.error(insertError);
+    alert("Could not create the initial board.");
+    return [];
+  }
+
+  return inserted || [];
+}
+
+async function loadData() {
+  const boards = await ensureMainBoard();
+  if (!boards.length) return;
+
+  const boardIds = boards.map(b => b.id);
+
+  const { data: tasks, error } = await supabase
+    .from("tasks")
+    .select("*")
+    .in("board_id", boardIds)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error(error);
+    alert("Could not load tasks from Supabase.");
+    return;
+  }
+
+  data.boards = boards.map(board => ({
+    id: board.id,
+    name: board.name,
+    created_at: board.created_at,
+    tasks: (tasks || []).filter(task => task.board_id === board.id).map(normalizeTask)
+  }));
+
+  if (!data.activeBoardId || !data.boards.some(b => b.id === data.activeBoardId)) {
+    data.activeBoardId = data.boards[0].id;
+  }
+
+  await autoMoveDueTodayTasks();
+  renderBoard();
+}
+
+async function refreshData() {
+  await loadData();
+}
+
+async function autoMoveDueTodayTasks() {
+  const updates = [];
 
   data.boards.forEach(board => {
-    board.tasks = board.tasks.map(task => {
+    board.tasks.forEach(task => {
       if (task.status === "backlog" && isDueToday(task)) {
-        changed = true;
-        return {
-          ...task,
-          status: "inprogress",
-          updatedAt: Date.now()
-        };
+        updates.push({ id: task.id, status: "inprogress" });
+        task.status = "inprogress";
       }
-      return task;
     });
   });
 
-  if (changed) {
-    saveData();
+  if (!updates.length) return;
+
+  for (const item of updates) {
+    await supabase
+      .from("tasks")
+      .update({ status: item.status, updated_at: new Date().toISOString() })
+      .eq("id", item.id);
   }
 }
 
@@ -144,7 +183,7 @@ function matchesFilters(task) {
     task.title,
     task.priority,
     task.notes,
-    formatDueDate(task.dueDate),
+    formatDueDate(task.due_date),
     task.status
   ].join(" ").toLowerCase();
 
@@ -167,16 +206,16 @@ function getVisibleTasks(status) {
       const p = priorityOrder[a.priority] - priorityOrder[b.priority];
       if (p !== 0) return p;
 
-      if (a.dueDate && b.dueDate) {
-        const d = a.dueDate.localeCompare(b.dueDate);
+      if (a.due_date && b.due_date) {
+        const d = a.due_date.localeCompare(b.due_date);
         if (d !== 0) return d;
-      } else if (a.dueDate) {
+      } else if (a.due_date) {
         return -1;
-      } else if (b.dueDate) {
+      } else if (b.due_date) {
         return 1;
       }
 
-      return b.updatedAt - a.updatedAt;
+      return new Date(b.updated_at || 0) - new Date(a.updated_at || 0);
     });
 }
 
@@ -191,7 +230,7 @@ function buildBoardSelect() {
     select.appendChild(option);
   });
 
-  select.value = data.activeBoardId;
+  if (data.activeBoardId) select.value = data.activeBoardId;
 }
 
 function renderStats() {
@@ -228,10 +267,10 @@ function renderColumn(status, elementId) {
     card.draggable = true;
     card.dataset.id = String(task.id);
 
-    const dueText = formatDueDate(task.dueDate);
+    const dueText = formatDueDate(task.due_date);
     const notesText = task.notes ? `<div class="task-notes">${escapeHtml(task.notes)}</div>` : "";
-    const recurrenceText = task.isRecurring
-      ? `<span class="badge recurrence-badge">${escapeHtml(task.recurrenceType)} • every ${task.recurrenceInterval}</span>`
+    const recurrenceText = task.is_recurring
+      ? `<span class="badge recurrence-badge">${escapeHtml(task.recurrence_type)} • every ${task.recurrence_interval}</span>`
       : "";
     const todayText = isDueToday(task)
       ? `<span class="badge due-today-badge">Today</span>`
@@ -259,13 +298,13 @@ function renderColumn(status, elementId) {
 
   column.querySelectorAll(".delete-btn").forEach(button => {
     button.addEventListener("click", event => {
-      deleteTask(Number(event.target.dataset.id));
+      deleteTask(event.target.dataset.id);
     });
   });
 
   column.querySelectorAll(".edit-btn").forEach(button => {
     button.addEventListener("click", event => {
-      startEdit(Number(event.target.dataset.id));
+      startEdit(event.target.dataset.id);
     });
   });
 }
@@ -279,7 +318,6 @@ function renderFormVisibility() {
 }
 
 function renderBoard() {
-  autoMoveDueTodayTasks();
   buildBoardSelect();
   renderStats();
   renderFormVisibility();
@@ -300,12 +338,12 @@ function readForm() {
   return {
     title: document.getElementById("taskTitle").value.trim(),
     priority: document.getElementById("taskPriority").value,
-    dueDate: document.getElementById("taskDueDate").value,
+    due_date: document.getElementById("taskDueDate").value || null,
     status: document.getElementById("taskStatus").value,
     notes: document.getElementById("taskNotes").value.trim(),
-    isRecurring,
-    recurrenceType: isRecurring ? document.getElementById("taskRecurrenceType").value : "weekly",
-    recurrenceInterval: isRecurring ? Math.max(1, Number(document.getElementById("taskRecurrenceInterval").value) || 1) : 1
+    is_recurring: isRecurring,
+    recurrence_type: isRecurring ? document.getElementById("taskRecurrenceType").value : "weekly",
+    recurrence_interval: isRecurring ? Math.max(1, Number(document.getElementById("taskRecurrenceInterval").value) || 1) : 1
   };
 }
 
@@ -326,31 +364,44 @@ function clearForm() {
   document.getElementById("cancelEditBtn").classList.add("hidden");
 }
 
-function saveTask() {
+async function saveTask() {
   const form = readForm();
   if (!form.title) return;
 
-  const tasks = getTasks();
+  const board = getActiveBoard();
+  if (!board) return;
 
   if (editingTaskId === null) {
-    tasks.unshift({
-      id: nextTaskId(),
+    const payload = {
+      board_id: board.id,
       ...form,
-      recurrenceSourceId: null,
-      createdAt: Date.now(),
-      updatedAt: Date.now()
-    });
+      recurrence_source_id: null
+    };
+
+    const { error } = await supabase.from("tasks").insert([payload]);
+    if (error) {
+      console.error(error);
+      alert("Could not save task.");
+      return;
+    }
   } else {
-    setTasks(tasks.map(task =>
-      task.id === editingTaskId
-        ? { ...task, ...form, updatedAt: Date.now() }
-        : task
-    ));
+    const { error } = await supabase
+      .from("tasks")
+      .update({
+        ...form,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", editingTaskId);
+
+    if (error) {
+      console.error(error);
+      alert("Could not update task.");
+      return;
+    }
   }
 
-  saveData();
   clearForm();
-  renderBoard();
+  await refreshData();
 }
 
 function startEdit(id) {
@@ -360,16 +411,15 @@ function startEdit(id) {
   editingTaskId = id;
   document.getElementById("taskTitle").value = task.title;
   document.getElementById("taskPriority").value = task.priority;
-  document.getElementById("taskDueDate").value = task.dueDate;
+  document.getElementById("taskDueDate").value = task.due_date || "";
   document.getElementById("taskStatus").value = task.status;
-  document.getElementById("taskNotes").value = task.notes;
-  document.getElementById("taskRecurring").checked = !!task.isRecurring;
-  document.getElementById("taskRecurrenceType").value = task.recurrenceType || "weekly";
-  document.getElementById("taskRecurrenceInterval").value = task.recurrenceInterval || 1;
+  document.getElementById("taskNotes").value = task.notes || "";
+  document.getElementById("taskRecurring").checked = !!task.is_recurring;
+  document.getElementById("taskRecurrenceType").value = task.recurrence_type || "weekly";
+  document.getElementById("taskRecurrenceInterval").value = task.recurrence_interval || 1;
   toggleRecurrenceFields();
 
   data.formVisible = true;
-  saveData();
   renderFormVisibility();
 
   document.getElementById("formTitle").textContent = "Edit Task";
@@ -378,32 +428,45 @@ function startEdit(id) {
   document.getElementById("taskTitle").focus();
 }
 
-function deleteTask(id) {
+async function deleteTask(id) {
   const task = getTasks().find(t => t.id === id);
   if (!task) return;
   if (!window.confirm(`Delete "${task.title}"?`)) return;
 
-  setTasks(getTasks().filter(task => task.id !== id));
-  saveData();
+  const { error } = await supabase.from("tasks").delete().eq("id", id);
+  if (error) {
+    console.error(error);
+    alert("Could not delete task.");
+    return;
+  }
+
   if (editingTaskId === id) clearForm();
-  renderBoard();
+  await refreshData();
 }
 
-function clearBoardTasks() {
+async function clearBoardTasks() {
+  const board = getActiveBoard();
+  if (!board) return;
   if (!window.confirm("Clear all tasks in this board?")) return;
-  setTasks([]);
+
+  const { error } = await supabase.from("tasks").delete().eq("board_id", board.id);
+  if (error) {
+    console.error(error);
+    alert("Could not clear board.");
+    return;
+  }
+
   clearForm();
-  saveData();
-  renderBoard();
+  await refreshData();
 }
 
 function handleDragStart(event) {
-  draggedTaskId = Number(event.currentTarget.dataset.id);
+  draggedTaskId = event.currentTarget.dataset.id;
   event.dataTransfer.setData("text/plain", String(draggedTaskId));
 }
 
 function getAnchorDate(task) {
-  if (task.dueDate) return new Date(task.dueDate + "T12:00:00");
+  if (task.due_date) return new Date(`${task.due_date}T12:00:00`);
   const now = new Date();
   return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0);
 }
@@ -436,11 +499,11 @@ function addYearsSafe(date, yearsToAdd) {
 }
 
 function computeNextRecurringDate(task) {
-  const interval = Math.max(1, Number(task.recurrenceInterval) || 1);
+  const interval = Math.max(1, Number(task.recurrence_interval) || 1);
   const base = getAnchorDate(task);
   const result = new Date(base);
 
-  switch (task.recurrenceType) {
+  switch (task.recurrence_type) {
     case "daily":
       result.setDate(result.getDate() + interval);
       return formatDateForInput(result);
@@ -459,53 +522,60 @@ function computeNextRecurringDate(task) {
 
 function recurringChildAlreadyExists(task, nextDueDate) {
   return getTasks().some(existing =>
-    existing.recurrenceSourceId === task.id &&
-    existing.dueDate === nextDueDate &&
+    existing.recurrence_source_id === task.id &&
+    existing.due_date === nextDueDate &&
     existing.status !== "done"
   );
 }
 
-function createNextRecurringTask(task) {
-  if (!task.isRecurring) return;
+async function createNextRecurringTask(task) {
+  if (!task.is_recurring) return;
 
   const nextDueDate = computeNextRecurringDate(task);
   if (recurringChildAlreadyExists(task, nextDueDate)) return;
 
-  const tasks = getTasks();
-  tasks.unshift({
-    id: nextTaskId(),
+  const payload = {
+    board_id: task.board_id,
     title: task.title,
     priority: task.priority,
-    dueDate: nextDueDate,
+    due_date: nextDueDate,
     notes: task.notes,
     status: "backlog",
-    isRecurring: true,
-    recurrenceType: task.recurrenceType,
-    recurrenceInterval: task.recurrenceInterval,
-    recurrenceSourceId: task.id,
-    createdAt: Date.now(),
-    updatedAt: Date.now()
-  });
+    is_recurring: true,
+    recurrence_type: task.recurrence_type,
+    recurrence_interval: task.recurrence_interval,
+    recurrence_source_id: task.id
+  };
+
+  const { error } = await supabase.from("tasks").insert([payload]);
+  if (error) {
+    console.error(error);
+  }
 }
 
-function moveTask(id, status) {
+async function moveTask(id, status) {
   const original = getTasks().find(task => task.id === id);
   if (!original) return;
 
   const wasDone = original.status === "done";
   const becomingDone = status === "done";
 
-  setTasks(getTasks().map(task => {
-    if (task.id === id) return { ...task, status, updatedAt: Date.now() };
-    return task;
-  }));
+  const { error } = await supabase
+    .from("tasks")
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq("id", id);
 
-  if (!wasDone && becomingDone && original.isRecurring) {
-    createNextRecurringTask(original);
+  if (error) {
+    console.error(error);
+    alert("Could not move task.");
+    return;
   }
 
-  saveData();
-  renderBoard();
+  if (!wasDone && becomingDone && original.is_recurring) {
+    await createNextRecurringTask(original);
+  }
+
+  await refreshData();
 }
 
 function setupDropZones() {
@@ -519,16 +589,26 @@ function setupDropZones() {
       column.classList.remove("drag-over");
     });
 
-    column.addEventListener("drop", event => {
+    column.addEventListener("drop", async event => {
       event.preventDefault();
       column.classList.remove("drag-over");
-      moveTask(draggedTaskId, column.dataset.status);
+      await moveTask(draggedTaskId, column.dataset.status);
     });
   });
 }
 
 function exportData() {
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const exportPayload = {
+    boards: data.boards.map(board => ({
+      id: board.id,
+      name: board.name,
+      tasks: board.tasks
+    })),
+    activeBoardId: data.activeBoardId,
+    formVisible: data.formVisible
+  };
+
+  const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
@@ -537,91 +617,124 @@ function exportData() {
   URL.revokeObjectURL(url);
 }
 
-function importData(file) {
+async function importData(file) {
   if (!file) return;
 
   const reader = new FileReader();
-  reader.onload = event => {
+  reader.onload = async event => {
     try {
       const parsed = JSON.parse(event.target.result);
+      if (!parsed || !Array.isArray(parsed.boards)) throw new Error("Invalid backup");
 
-      if (Array.isArray(parsed)) {
-        data = {
-          boards: [{ id: DEFAULT_BOARD_ID, name: "Imported Board", tasks: parsed }],
-          activeBoardId: DEFAULT_BOARD_ID,
-          formVisible: true
-        };
-      } else if (parsed && Array.isArray(parsed.boards) && parsed.boards.length) {
-        data = parsed;
-        if (!data.activeBoardId) data.activeBoardId = data.boards[0].id;
-        if (typeof data.formVisible !== "boolean") data.formVisible = true;
-      } else {
-        throw new Error("Invalid backup");
+      for (const board of parsed.boards) {
+        const { data: insertedBoard, error: boardError } = await supabase
+          .from("boards")
+          .insert([{ name: board.name }])
+          .select()
+          .single();
+
+        if (boardError) throw boardError;
+
+        const tasks = (board.tasks || []).map(task => ({
+          board_id: insertedBoard.id,
+          title: task.title,
+          priority: task.priority || "Medium",
+          due_date: task.due_date || task.dueDate || null,
+          notes: task.notes || "",
+          status: task.status || "backlog",
+          is_recurring: !!(task.is_recurring ?? task.isRecurring),
+          recurrence_type: task.recurrence_type || task.recurrenceType || "weekly",
+          recurrence_interval: task.recurrence_interval || task.recurrenceInterval || 1,
+          recurrence_source_id: null
+        }));
+
+        if (tasks.length) {
+          const { error: taskError } = await supabase.from("tasks").insert(tasks);
+          if (taskError) throw taskError;
+        }
       }
 
-      clearForm();
-      saveData();
-      renderBoard();
+      await refreshData();
     } catch (err) {
-      window.alert("Import failed. Use a valid JSON backup file.");
+      console.error(err);
+      alert("Import failed. Use a valid JSON backup file.");
     }
   };
   reader.readAsText(file);
 }
 
-function createBoard() {
+async function createBoard() {
   const name = window.prompt("New board name:");
   if (!name || !name.trim()) return;
 
-  const board = {
-    id: nextBoardId(),
-    name: name.trim(),
-    tasks: []
-  };
-
-  data.boards.push(board);
-  data.activeBoardId = board.id;
-  clearForm();
-  saveData();
-  renderBoard();
-}
-
-function renameBoard() {
-  const board = getActiveBoard();
-  const name = window.prompt("Rename board:", board.name);
-  if (!name || !name.trim()) return;
-
-  board.name = name.trim();
-  saveData();
-  renderBoard();
-}
-
-function deleteBoard() {
-  if (data.boards.length === 1) {
-    window.alert("You need to keep at least one board.");
+  const { error } = await supabase.from("boards").insert([{ name: name.trim() }]);
+  if (error) {
+    console.error(error);
+    alert("Could not create board.");
     return;
   }
 
+  clearForm();
+  await refreshData();
+
+  const newest = data.boards.find(b => b.name === name.trim());
+  if (newest) {
+    data.activeBoardId = newest.id;
+    renderBoard();
+  }
+}
+
+async function renameBoard() {
   const board = getActiveBoard();
+  if (!board) return;
+
+  const name = window.prompt("Rename board:", board.name);
+  if (!name || !name.trim()) return;
+
+  const { error } = await supabase
+    .from("boards")
+    .update({ name: name.trim() })
+    .eq("id", board.id);
+
+  if (error) {
+    console.error(error);
+    alert("Could not rename board.");
+    return;
+  }
+
+  await refreshData();
+}
+
+async function deleteBoard() {
+  const board = getActiveBoard();
+  if (!board) return;
+
+  if (data.boards.length === 1) {
+    alert("You need to keep at least one board.");
+    return;
+  }
+
   if (!window.confirm(`Delete board "${board.name}"?`)) return;
 
-  data.boards = data.boards.filter(b => b.id !== board.id);
-  data.activeBoardId = data.boards[0].id;
+  const { error } = await supabase.from("boards").delete().eq("id", board.id);
+  if (error) {
+    console.error(error);
+    alert("Could not delete board.");
+    return;
+  }
+
   clearForm();
-  saveData();
-  renderBoard();
+  await refreshData();
 }
 
 function switchBoard(boardId) {
   data.activeBoardId = boardId;
   clearForm();
-  saveData();
   renderBoard();
 }
 
 function toggleForm() {
   data.formVisible = !data.formVisible;
-  saveData();
   renderFormVisibility();
 }
 
@@ -652,4 +765,4 @@ document.getElementById("toggleFormBtn").addEventListener("click", toggleForm);
 
 toggleRecurrenceFields();
 setupDropZones();
-renderBoard();
+loadData();
