@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kanban Board</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <h1>Kanban Board</h1>
+      <p class="subtitle" id="syncStatus">Shared kanban board with Supabase sync</p>
+    </div>
+    <div class="topbar-right">
+      <button id="toggleFormBtn" class="btn btn-outline">Hide Form</button>
+      <button id="exportBtn" class="btn btn-outline">Export</button>
+      <label class="btn btn-outline" style="cursor:pointer;">
+        Import
+        <input type="file" id="importInput" accept=".json" style="display:none" />
+      </label>
+      <button id="clearTasksBtn" class="btn btn-outline">Clear Tasks</button>
+    </div>
+  </header>
+
+  <!-- Board selector -->
+  <div class="board-bar">
+    <div class="board-select-group">
+      <label for="boardSelect">Board</label>
+      <select id="boardSelect"></select>
+    </div>
+    <div class="board-actions">
+      <button id="newBoardBtn" class="btn btn-primary">New Board</button>
+      <button id="renameBoardBtn" class="btn btn-outline">Rename</button>
+      <button id="deleteBoardBtn" class="btn btn-danger-outline">Delete Board</button>
+    </div>
+  </div>
+
+  <!-- Add Task form -->
+  <div class="form-bar" id="formBar">
+    <div class="form-bar-title">Add Task</div>
+    <div class="form-row">
+      <input id="taskTitle" type="text" placeholder="Enter a task" class="form-input flex-2" />
+      <select id="taskPriority" class="form-select">
+        <option>High</option>
+        <option selected>Medium</option>
+        <option>Low</option>
+      </select>
+      <input id="taskDueDate" type="date" class="form-input" />
+      <select id="taskStatus" class="form-select">
+        <option value="todo">To Do</option>
+        <option value="doing">Doing</option>
+        <option value="done">Done</option>
+      </select>
+      <label class="recurring-label">
+        <input id="taskRecurring" type="checkbox" />
+        Recurring
+      </label>
+      <input id="taskNotes" type="text" placeholder="Optional notes" class="form-input flex-2" />
+      <button id="addTaskBtn" class="btn btn-primary">Add Task</button>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <input id="searchInput" type="text" placeholder="Search tasks" class="form-input search-input" />
+    <select id="priorityFilter" class="form-select">
+      <option value="">All Priorities</option>
+      <option value="High">High</option>
+      <option value="Medium">Medium</option>
+      <option value="Low">Low</option>
+    </select>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">Total</div>
+      <div class="stat-value" id="statTotal">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">To Do</div>
+      <div class="stat-value" id="statOpen">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Doing</div>
+      <div class="stat-value" id="statBlocked">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Done</div>
+      <div class="stat-value" id="statDone">0</div>
+    </div>
+  </div>
+
+  <!-- Board columns -->
+  <main class="board" id="board">
+    <div class="column" data-status="todo">
+      <div class="column-header">
+        <span class="column-title">To Do</span>
+        <span class="count" id="count-todo">0</span>
+      </div>
+      <div class="column-body" id="col-todo"></div>
+    </div>
+
+    <div class="column" data-status="doing">
+      <div class="column-header">
+        <span class="column-title">Doing</span>
+        <span class="count" id="count-doing">0</span>
+      </div>
+      <div class="column-body" id="col-doing"></div>
+    </div>
+
+    <div class="column" data-status="done">
+      <div class="column-header">
+        <span class="column-title">Done</span>
+        <span class="count" id="count-done">0</span>
+      </div>
+      <div class="column-body" id="col-done"></div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="script.js"></script>
+</body>
+</html>
