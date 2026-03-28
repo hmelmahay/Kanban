@@ -1,57 +1,90 @@
-const STORAGE_KEY = "kanban-board-v3";
+const STORAGE_KEY = "kanban-board-v4";
+const DEFAULT_BOARD_ID = "board-1";
 
-const starterTasks = [
-  {
-    id: 1,
-    title: "Send weekly update",
-    owner: "Steve",
-    priority: "High",
-    dueDate: "",
-    notes: "Recurring every Friday.",
-    status: "backlog",
-    isRecurring: true,
-    recurrenceInterval: 1,
-    recurrenceDay: 5,
-    recurrenceSourceId: null,
-    createdAt: Date.now() - 50000,
-    updatedAt: Date.now() - 50000
-  },
-  {
-    id: 2,
-    title: "Plan next sprint",
-    owner: "Steve",
-    priority: "Medium",
-    dueDate: "",
-    notes: "",
-    status: "inprogress",
-    isRecurring: false,
-    recurrenceInterval: 1,
-    recurrenceDay: 1,
-    recurrenceSourceId: null,
-    createdAt: Date.now() - 40000,
-    updatedAt: Date.now() - 40000
-  }
-];
+const starterData = {
+  boards: [
+    {
+      id: DEFAULT_BOARD_ID,
+      name: "Main Board",
+      tasks: [
+        {
+          id: 1,
+          title: "Send weekly update",
+          owner: "Steve",
+          priority: "High",
+          dueDate: "",
+          notes: "Recurring every Friday.",
+          status: "backlog",
+          isRecurring: true,
+          recurrenceInterval: 1,
+          recurrenceDay: 5,
+          recurrenceSourceId: null,
+          createdAt: Date.now() - 50000,
+          updatedAt: Date.now() - 50000
+        },
+        {
+          id: 2,
+          title: "Plan next sprint",
+          owner: "Steve",
+          priority: "Medium",
+          dueDate: "",
+          notes: "",
+          status: "inprogress",
+          isRecurring: false,
+          recurrenceInterval: 1,
+          recurrenceDay: 1,
+          recurrenceSourceId: null,
+          createdAt: Date.now() - 40000,
+          updatedAt: Date.now() - 40000
+        }
+      ]
+    }
+  ],
+  activeBoardId: DEFAULT_BOARD_ID,
+  formVisible: true
+};
 
-let tasks = loadTasks();
+let data = loadData();
 let searchTerm = "";
 let draggedTaskId = null;
 let editingTaskId = null;
 
-function loadTasks() {
+function loadData() {
   try {
     const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if (Array.isArray(parsed)) return parsed;
+    if (parsed && Array.isArray(parsed.boards) && parsed.boards.length) {
+      if (!parsed.activeBoardId) parsed.activeBoardId = parsed.boards[0].id;
+      if (typeof parsed.formVisible !== "boolean") parsed.formVisible = true;
+      return parsed;
+    }
   } catch (e) {}
-  return starterTasks;
+  return structuredClone(starterData);
 }
 
-function saveTasks() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+function saveData() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
-function nextId() {
+function getActiveBoard() {
+  return data.boards.find(board => board.id === data.activeBoardId) || data.boards[0];
+}
+
+function getTasks() {
+  return getActiveBoard().tasks;
+}
+
+function setTasks(tasks) {
+  const board = getActiveBoard();
+  board.tasks = tasks;
+}
+
+function nextTaskId() {
+  const tasks = getTasks();
   return tasks.length ? Math.max(...tasks.map(task => task.id)) + 1 : 1;
+}
+
+function nextBoardId() {
+  return "board-" + Date.now();
 }
 
 function formatDueDate(value) {
@@ -98,7 +131,7 @@ function matchesFilters(task) {
 }
 
 function getVisibleTasks(status) {
-  return tasks
+  return getTasks()
     .filter(task => task.status === status)
     .filter(task => matchesFilters(task))
     .sort((a, b) => {
@@ -109,10 +142,24 @@ function getVisibleTasks(status) {
     });
 }
 
+function buildBoardSelect() {
+  const select = document.getElementById("boardSelect");
+  select.innerHTML = "";
+
+  data.boards.forEach(board => {
+    const option = document.createElement("option");
+    option.value = board.id;
+    option.textContent = board.name;
+    select.appendChild(option);
+  });
+
+  select.value = data.activeBoardId;
+}
+
 function buildOwnerFilter() {
   const ownerFilter = document.getElementById("ownerFilter");
   const currentValue = ownerFilter.value;
-  const owners = [...new Set(tasks.map(task => (task.owner || "").trim()).filter(Boolean))].sort();
+  const owners = [...new Set(getTasks().map(task => (task.owner || "").trim()).filter(Boolean))].sort();
 
   ownerFilter.innerHTML = `<option value="all">All Owners</option>`;
   owners.forEach(owner => {
@@ -127,6 +174,7 @@ function buildOwnerFilter() {
 }
 
 function renderStats() {
+  const tasks = getTasks();
   const total = tasks.length;
   const done = tasks.filter(t => t.status === "done").length;
   const blocked = tasks.filter(t => t.status === "blocked").length;
@@ -164,7 +212,7 @@ function renderColumn(status, elementId) {
     const notesText = task.notes ? `<div class="task-notes">${escapeHtml(task.notes)}</div>` : "";
     const updatedText = new Date(task.updatedAt).toLocaleString();
     const recurrenceText = task.isRecurring
-      ? `<span class="badge recurrence-badge">Weekly • every ${task.recurrenceInterval} wk • ${weekdayLabel(task.recurrenceDay)}</span>`
+      ? `<span class="badge recurrence-badge">Weekly • ${task.recurrenceInterval} wk • ${weekdayLabel(task.recurrenceDay)}</span>`
       : "";
 
     card.innerHTML = `
@@ -203,9 +251,19 @@ function renderColumn(status, elementId) {
   });
 }
 
+function renderFormVisibility() {
+  const formPanel = document.getElementById("taskFormPanel");
+  const toggleBtn = document.getElementById("toggleFormBtn");
+
+  formPanel.classList.toggle("hidden", !data.formVisible);
+  toggleBtn.textContent = data.formVisible ? "Hide Form" : "Show Form";
+}
+
 function renderBoard() {
+  buildBoardSelect();
   buildOwnerFilter();
   renderStats();
+  renderFormVisibility();
   renderColumn("backlog", "backlogColumn");
   renderColumn("inprogress", "inprogressColumn");
   renderColumn("blocked", "blockedColumn");
@@ -254,33 +312,31 @@ function saveTask() {
   const form = readForm();
   if (!form.title) return;
 
+  const tasks = getTasks();
+
   if (editingTaskId === null) {
     tasks.unshift({
-      id: nextId(),
+      id: nextTaskId(),
       ...form,
       recurrenceSourceId: null,
       createdAt: Date.now(),
       updatedAt: Date.now()
     });
   } else {
-    tasks = tasks.map(task =>
+    setTasks(tasks.map(task =>
       task.id === editingTaskId
-        ? {
-            ...task,
-            ...form,
-            updatedAt: Date.now()
-          }
+        ? { ...task, ...form, updatedAt: Date.now() }
         : task
-    );
+    ));
   }
 
-  saveTasks();
+  saveData();
   clearForm();
   renderBoard();
 }
 
 function startEdit(id) {
-  const task = tasks.find(t => t.id === id);
+  const task = getTasks().find(t => t.id === id);
   if (!task) return;
 
   editingTaskId = id;
@@ -295,6 +351,10 @@ function startEdit(id) {
   document.getElementById("taskRecurrenceDay").value = String(task.recurrenceDay ?? 5);
   toggleRecurrenceFields();
 
+  data.formVisible = true;
+  saveData();
+  renderFormVisibility();
+
   document.getElementById("formTitle").textContent = "Edit Task";
   document.getElementById("saveTaskBtn").textContent = "Save Changes";
   document.getElementById("cancelEditBtn").classList.remove("hidden");
@@ -302,25 +362,23 @@ function startEdit(id) {
 }
 
 function deleteTask(id) {
-  const task = tasks.find(t => t.id === id);
+  const task = getTasks().find(t => t.id === id);
   if (!task) return;
 
-  const ok = window.confirm(`Delete "${task.title}"?`);
-  if (!ok) return;
+  if (!window.confirm(`Delete "${task.title}"?`)) return;
 
-  tasks = tasks.filter(task => task.id !== id);
-  saveTasks();
+  setTasks(getTasks().filter(task => task.id !== id));
+  saveData();
   if (editingTaskId === id) clearForm();
   renderBoard();
 }
 
-function clearBoard() {
-  const ok = window.confirm("Clear the full board?");
-  if (!ok) return;
+function clearBoardTasks() {
+  if (!window.confirm("Clear all tasks in this board?")) return;
 
-  tasks = [];
-  localStorage.removeItem(STORAGE_KEY);
+  setTasks([]);
   clearForm();
+  saveData();
   renderBoard();
 }
 
@@ -330,9 +388,7 @@ function handleDragStart(event) {
 }
 
 function getAnchorDate(task) {
-  if (task.dueDate) {
-    return new Date(task.dueDate + "T12:00:00");
-  }
+  if (task.dueDate) return new Date(task.dueDate + "T12:00:00");
   const now = new Date();
   return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0);
 }
@@ -360,7 +416,7 @@ function computeNextWeeklyDate(task) {
 }
 
 function recurringChildAlreadyExists(task, nextDueDate) {
-  return tasks.some(existing =>
+  return getTasks().some(existing =>
     existing.recurrenceSourceId === task.id &&
     existing.dueDate === nextDueDate &&
     existing.status !== "done"
@@ -371,11 +427,11 @@ function createNextRecurringTask(task) {
   if (!task.isRecurring) return;
 
   const nextDueDate = computeNextWeeklyDate(task);
-
   if (recurringChildAlreadyExists(task, nextDueDate)) return;
 
+  const tasks = getTasks();
   tasks.unshift({
-    id: nextId(),
+    id: nextTaskId(),
     title: task.title,
     owner: task.owner,
     priority: task.priority,
@@ -392,24 +448,22 @@ function createNextRecurringTask(task) {
 }
 
 function moveTask(id, status) {
-  const original = tasks.find(task => task.id === id);
+  const original = getTasks().find(task => task.id === id);
   if (!original) return;
 
   const wasDone = original.status === "done";
   const becomingDone = status === "done";
 
-  tasks = tasks.map(task => {
-    if (task.id === id) {
-      return { ...task, status, updatedAt: Date.now() };
-    }
+  setTasks(getTasks().map(task => {
+    if (task.id === id) return { ...task, status, updatedAt: Date.now() };
     return task;
-  });
+  }));
 
   if (!wasDone && becomingDone && original.isRecurring) {
     createNextRecurringTask(original);
   }
 
-  saveTasks();
+  saveData();
   renderBoard();
 }
 
@@ -427,14 +481,13 @@ function setupDropZones() {
     column.addEventListener("drop", event => {
       event.preventDefault();
       column.classList.remove("drag-over");
-      const status = column.dataset.status;
-      moveTask(draggedTaskId, status);
+      moveTask(draggedTaskId, column.dataset.status);
     });
   });
 }
 
-function exportTasks() {
-  const blob = new Blob([JSON.stringify(tasks, null, 2)], { type: "application/json" });
+function exportData() {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
@@ -443,23 +496,93 @@ function exportTasks() {
   URL.revokeObjectURL(url);
 }
 
-function importTasks(file) {
+function importData(file) {
   if (!file) return;
 
   const reader = new FileReader();
   reader.onload = event => {
     try {
       const parsed = JSON.parse(event.target.result);
-      if (!Array.isArray(parsed)) throw new Error("Invalid backup");
-      tasks = parsed;
-      saveTasks();
+
+      if (Array.isArray(parsed)) {
+        data = {
+          boards: [{ id: DEFAULT_BOARD_ID, name: "Imported Board", tasks: parsed }],
+          activeBoardId: DEFAULT_BOARD_ID,
+          formVisible: true
+        };
+      } else if (parsed && Array.isArray(parsed.boards) && parsed.boards.length) {
+        data = parsed;
+        if (!data.activeBoardId) data.activeBoardId = data.boards[0].id;
+        if (typeof data.formVisible !== "boolean") data.formVisible = true;
+      } else {
+        throw new Error("Invalid backup");
+      }
+
       clearForm();
+      saveData();
       renderBoard();
     } catch (err) {
       window.alert("Import failed. Use a valid JSON backup file.");
     }
   };
   reader.readAsText(file);
+}
+
+function createBoard() {
+  const name = window.prompt("New board name:");
+  if (!name || !name.trim()) return;
+
+  const board = {
+    id: nextBoardId(),
+    name: name.trim(),
+    tasks: []
+  };
+
+  data.boards.push(board);
+  data.activeBoardId = board.id;
+  clearForm();
+  saveData();
+  renderBoard();
+}
+
+function renameBoard() {
+  const board = getActiveBoard();
+  const name = window.prompt("Rename board:", board.name);
+  if (!name || !name.trim()) return;
+
+  board.name = name.trim();
+  saveData();
+  renderBoard();
+}
+
+function deleteBoard() {
+  if (data.boards.length === 1) {
+    window.alert("You need to keep at least one board.");
+    return;
+  }
+
+  const board = getActiveBoard();
+  if (!window.confirm(`Delete board "${board.name}"?`)) return;
+
+  data.boards = data.boards.filter(b => b.id !== board.id);
+  data.activeBoardId = data.boards[0].id;
+  clearForm();
+  saveData();
+  renderBoard();
+}
+
+function switchBoard(boardId) {
+  data.activeBoardId = boardId;
+  editingTaskId = null;
+  clearForm();
+  saveData();
+  renderBoard();
+}
+
+function toggleForm() {
+  data.formVisible = !data.formVisible;
+  saveData();
+  renderFormVisibility();
 }
 
 document.getElementById("saveTaskBtn").addEventListener("click", saveTask);
@@ -474,12 +597,19 @@ document.getElementById("searchInput").addEventListener("input", event => {
 });
 document.getElementById("priorityFilter").addEventListener("change", renderBoard);
 document.getElementById("ownerFilter").addEventListener("change", renderBoard);
-document.getElementById("clearBoardBtn").addEventListener("click", clearBoard);
-document.getElementById("exportBtn").addEventListener("click", exportTasks);
+document.getElementById("clearBoardBtn").addEventListener("click", clearBoardTasks);
+document.getElementById("exportBtn").addEventListener("click", exportData);
 document.getElementById("importFile").addEventListener("change", event => {
-  importTasks(event.target.files[0]);
+  importData(event.target.files[0]);
   event.target.value = "";
 });
+document.getElementById("boardSelect").addEventListener("change", event => {
+  switchBoard(event.target.value);
+});
+document.getElementById("newBoardBtn").addEventListener("click", createBoard);
+document.getElementById("renameBoardBtn").addEventListener("click", renameBoard);
+document.getElementById("deleteBoardBtn").addEventListener("click", deleteBoard);
+document.getElementById("toggleFormBtn").addEventListener("click", toggleForm);
 
 toggleRecurrenceFields();
 setupDropZones();
