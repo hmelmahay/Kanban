@@ -8,25 +8,44 @@
 </head>
 <body>
   <header class="topbar">
-    <div>
+    <div class="title-wrap">
       <h1>Kanban Board</h1>
-      <p class="subtitle">Kanban board with edit, filters, backup, and recurring weekly tasks</p>
+      <p class="subtitle">Compact board with multiple boards, recurring weekly tasks, filters, and backup</p>
     </div>
+
     <div class="topbar-actions">
+      <button id="toggleFormBtn" class="btn btn-secondary">Hide Form</button>
       <button id="exportBtn" class="btn btn-secondary">Export</button>
       <label class="btn btn-secondary import-label">
         Import
         <input id="importFile" type="file" accept=".json" hidden />
       </label>
-      <button id="clearBoardBtn" class="btn btn-secondary">Clear Board</button>
+      <button id="clearBoardBtn" class="btn btn-secondary">Clear Tasks</button>
     </div>
   </header>
 
   <main class="app-shell">
-    <section class="panel add-task-card">
-      <h2 id="formTitle">Add Task</h2>
+    <section class="panel board-switcher-panel">
+      <div class="board-switcher">
+        <div class="board-switcher-left">
+          <label for="boardSelect">Board</label>
+          <select id="boardSelect"></select>
+        </div>
 
-      <div class="form-grid">
+        <div class="board-switcher-actions">
+          <button id="newBoardBtn" class="btn btn-secondary">New Board</button>
+          <button id="renameBoardBtn" class="btn btn-secondary">Rename</button>
+          <button id="deleteBoardBtn" class="btn btn-danger">Delete Board</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="taskFormPanel" class="panel add-task-card">
+      <div class="section-header compact-header">
+        <h2 id="formTitle">Add Task</h2>
+      </div>
+
+      <div class="form-grid compact-grid">
         <div class="field field-wide">
           <label for="taskTitle">Task title</label>
           <input id="taskTitle" type="text" placeholder="Enter a task" />
@@ -64,43 +83,43 @@
         <div class="field field-checkbox">
           <label class="checkbox-row">
             <input id="taskRecurring" type="checkbox" />
-            <span>Recurring task</span>
+            <span>Recurring</span>
           </label>
         </div>
 
         <div id="recurrenceFields" class="recurrence-grid hidden">
           <div class="field">
-            <label for="taskRecurrenceInterval">Repeat every</label>
+            <label for="taskRecurrenceInterval">Every</label>
             <input id="taskRecurrenceInterval" type="number" min="1" value="1" />
           </div>
 
           <div class="field">
-            <label for="taskRecurrenceDay">On</label>
+            <label for="taskRecurrenceDay">Day</label>
             <select id="taskRecurrenceDay">
-              <option value="0">Sunday</option>
-              <option value="1">Monday</option>
-              <option value="2">Tuesday</option>
-              <option value="3">Wednesday</option>
-              <option value="4">Thursday</option>
-              <option value="5" selected>Friday</option>
-              <option value="6">Saturday</option>
+              <option value="0">Sun</option>
+              <option value="1">Mon</option>
+              <option value="2">Tue</option>
+              <option value="3">Wed</option>
+              <option value="4">Thu</option>
+              <option value="5" selected>Fri</option>
+              <option value="6">Sat</option>
             </select>
           </div>
         </div>
 
-        <div class="field field-wide">
+        <div class="field field-wide field-full">
           <label for="taskNotes">Notes</label>
-          <textarea id="taskNotes" rows="4" placeholder="Optional notes"></textarea>
+          <textarea id="taskNotes" rows="2" placeholder="Optional notes"></textarea>
         </div>
       </div>
 
-      <div class="form-actions">
+      <div class="form-actions compact-actions">
         <button id="cancelEditBtn" class="btn btn-secondary hidden">Cancel Edit</button>
         <button id="saveTaskBtn" class="btn btn-primary">Add Task</button>
       </div>
     </section>
 
-    <section class="panel toolbar">
+    <section class="panel toolbar compact-toolbar">
       <div class="toolbar-left">
         <input id="searchInput" type="text" placeholder="Search tasks" />
       </div>
@@ -119,7 +138,7 @@
       </div>
     </section>
 
-    <section class="stats-row">
+    <section class="stats-row compact-stats">
       <div class="stat-card">
         <div class="stat-label">Total</div>
         <div class="stat-value" id="statTotal">0</div>
@@ -138,7 +157,7 @@
       </div>
     </section>
 
-    <section class="board">
+    <section class="board compact-board">
       <div class="column" data-status="backlog">
         <div class="column-header">
           <h3>Backlog</h3>
