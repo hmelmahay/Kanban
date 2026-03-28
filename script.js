@@ -1,4 +1,4 @@
-const STORAGE_KEY = "kanban-board-v4";
+const STORAGE_KEY = "kanban-board-v5";
 const DEFAULT_BOARD_ID = "board-1";
 
 const starterData = {
@@ -10,14 +10,13 @@ const starterData = {
         {
           id: 1,
           title: "Send weekly update",
-          owner: "Steve",
           priority: "High",
           dueDate: "",
-          notes: "Recurring every Friday.",
+          notes: "Recurring every week.",
           status: "backlog",
           isRecurring: true,
+          recurrenceType: "weekly",
           recurrenceInterval: 1,
-          recurrenceDay: 5,
           recurrenceSourceId: null,
           createdAt: Date.now() - 50000,
           updatedAt: Date.now() - 50000
@@ -25,14 +24,13 @@ const starterData = {
         {
           id: 2,
           title: "Plan next sprint",
-          owner: "Steve",
           priority: "Medium",
           dueDate: "",
           notes: "",
           status: "inprogress",
           isRecurring: false,
+          recurrenceType: "weekly",
           recurrenceInterval: 1,
-          recurrenceDay: 1,
           recurrenceSourceId: null,
           createdAt: Date.now() - 40000,
           updatedAt: Date.now() - 40000
@@ -74,8 +72,7 @@ function getTasks() {
 }
 
 function setTasks(tasks) {
-  const board = getActiveBoard();
-  board.tasks = tasks;
+  getActiveBoard().tasks = tasks;
 }
 
 function nextTaskId() {
@@ -99,10 +96,6 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
-function weekdayLabel(day) {
-  return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][Number(day)] || "";
-}
-
 function labelForStatus(status) {
   if (status === "backlog") return "Backlog";
   if (status === "inprogress") return "In Progress";
@@ -112,11 +105,9 @@ function labelForStatus(status) {
 
 function matchesFilters(task) {
   const priorityFilter = document.getElementById("priorityFilter").value;
-  const ownerFilter = document.getElementById("ownerFilter").value;
 
   const haystack = [
     task.title,
-    task.owner,
     task.priority,
     task.notes,
     formatDueDate(task.dueDate),
@@ -125,9 +116,8 @@ function matchesFilters(task) {
 
   const matchesSearch = haystack.includes(searchTerm.toLowerCase());
   const matchesPriority = priorityFilter === "all" || task.priority === priorityFilter;
-  const matchesOwner = ownerFilter === "all" || (task.owner || "") === ownerFilter;
 
-  return matchesSearch && matchesPriority && matchesOwner;
+  return matchesSearch && matchesPriority;
 }
 
 function getVisibleTasks(status) {
@@ -154,23 +144,6 @@ function buildBoardSelect() {
   });
 
   select.value = data.activeBoardId;
-}
-
-function buildOwnerFilter() {
-  const ownerFilter = document.getElementById("ownerFilter");
-  const currentValue = ownerFilter.value;
-  const owners = [...new Set(getTasks().map(task => (task.owner || "").trim()).filter(Boolean))].sort();
-
-  ownerFilter.innerHTML = `<option value="all">All Owners</option>`;
-  owners.forEach(owner => {
-    const option = document.createElement("option");
-    option.value = owner;
-    option.textContent = owner;
-    ownerFilter.appendChild(option);
-  });
-
-  const values = ["all", ...owners];
-  ownerFilter.value = values.includes(currentValue) ? currentValue : "all";
 }
 
 function renderStats() {
@@ -208,11 +181,10 @@ function renderColumn(status, elementId) {
     card.dataset.id = String(task.id);
 
     const dueText = formatDueDate(task.dueDate);
-    const ownerText = task.owner ? `<span class="badge">Owner: ${escapeHtml(task.owner)}</span>` : "";
     const notesText = task.notes ? `<div class="task-notes">${escapeHtml(task.notes)}</div>` : "";
     const updatedText = new Date(task.updatedAt).toLocaleString();
     const recurrenceText = task.isRecurring
-      ? `<span class="badge recurrence-badge">Weekly • ${task.recurrenceInterval} wk • ${weekdayLabel(task.recurrenceDay)}</span>`
+      ? `<span class="badge recurrence-badge">${escapeHtml(task.recurrenceType)} • every ${task.recurrenceInterval}</span>`
       : "";
 
     card.innerHTML = `
@@ -220,7 +192,6 @@ function renderColumn(status, elementId) {
       <div class="task-meta">
         <span class="badge priority-${task.priority.toLowerCase()}">${escapeHtml(task.priority)}</span>
         <span class="badge status-${task.status}">${escapeHtml(labelForStatus(task.status))}</span>
-        ${ownerText}
         ${dueText ? `<span class="badge">Due: ${escapeHtml(dueText)}</span>` : ""}
         ${recurrenceText}
       </div>
@@ -238,15 +209,13 @@ function renderColumn(status, elementId) {
 
   column.querySelectorAll(".delete-btn").forEach(button => {
     button.addEventListener("click", event => {
-      const id = Number(event.target.dataset.id);
-      deleteTask(id);
+      deleteTask(Number(event.target.dataset.id));
     });
   });
 
   column.querySelectorAll(".edit-btn").forEach(button => {
     button.addEventListener("click", event => {
-      const id = Number(event.target.dataset.id);
-      startEdit(id);
+      startEdit(Number(event.target.dataset.id));
     });
   });
 }
@@ -261,7 +230,6 @@ function renderFormVisibility() {
 
 function renderBoard() {
   buildBoardSelect();
-  buildOwnerFilter();
   renderStats();
   renderFormVisibility();
   renderColumn("backlog", "backlogColumn");
@@ -277,29 +245,28 @@ function toggleRecurrenceFields() {
 
 function readForm() {
   const isRecurring = document.getElementById("taskRecurring").checked;
+
   return {
     title: document.getElementById("taskTitle").value.trim(),
-    owner: document.getElementById("taskOwner").value.trim(),
     priority: document.getElementById("taskPriority").value,
     dueDate: document.getElementById("taskDueDate").value,
     status: document.getElementById("taskStatus").value,
     notes: document.getElementById("taskNotes").value.trim(),
     isRecurring,
-    recurrenceInterval: isRecurring ? Math.max(1, Number(document.getElementById("taskRecurrenceInterval").value) || 1) : 1,
-    recurrenceDay: isRecurring ? Number(document.getElementById("taskRecurrenceDay").value) : 0
+    recurrenceType: isRecurring ? document.getElementById("taskRecurrenceType").value : "weekly",
+    recurrenceInterval: isRecurring ? Math.max(1, Number(document.getElementById("taskRecurrenceInterval").value) || 1) : 1
   };
 }
 
 function clearForm() {
   document.getElementById("taskTitle").value = "";
-  document.getElementById("taskOwner").value = "";
   document.getElementById("taskPriority").value = "Medium";
   document.getElementById("taskDueDate").value = "";
   document.getElementById("taskStatus").value = "backlog";
   document.getElementById("taskNotes").value = "";
   document.getElementById("taskRecurring").checked = false;
+  document.getElementById("taskRecurrenceType").value = "weekly";
   document.getElementById("taskRecurrenceInterval").value = 1;
-  document.getElementById("taskRecurrenceDay").value = 5;
   toggleRecurrenceFields();
 
   editingTaskId = null;
@@ -341,14 +308,13 @@ function startEdit(id) {
 
   editingTaskId = id;
   document.getElementById("taskTitle").value = task.title;
-  document.getElementById("taskOwner").value = task.owner;
   document.getElementById("taskPriority").value = task.priority;
   document.getElementById("taskDueDate").value = task.dueDate;
   document.getElementById("taskStatus").value = task.status;
   document.getElementById("taskNotes").value = task.notes;
   document.getElementById("taskRecurring").checked = !!task.isRecurring;
+  document.getElementById("taskRecurrenceType").value = task.recurrenceType || "weekly";
   document.getElementById("taskRecurrenceInterval").value = task.recurrenceInterval || 1;
-  document.getElementById("taskRecurrenceDay").value = String(task.recurrenceDay ?? 5);
   toggleRecurrenceFields();
 
   data.formVisible = true;
@@ -364,7 +330,6 @@ function startEdit(id) {
 function deleteTask(id) {
   const task = getTasks().find(t => t.id === id);
   if (!task) return;
-
   if (!window.confirm(`Delete "${task.title}"?`)) return;
 
   setTasks(getTasks().filter(task => task.id !== id));
@@ -375,7 +340,6 @@ function deleteTask(id) {
 
 function clearBoardTasks() {
   if (!window.confirm("Clear all tasks in this board?")) return;
-
   setTasks([]);
   clearForm();
   saveData();
@@ -393,26 +357,53 @@ function getAnchorDate(task) {
   return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0);
 }
 
-function computeNextWeeklyDate(task) {
-  const interval = Math.max(1, Number(task.recurrenceInterval) || 1);
-  const targetDay = Number(task.recurrenceDay);
-  const base = getAnchorDate(task);
-
-  const result = new Date(base);
-  result.setDate(result.getDate() + 1);
-
-  while (result.getDay() !== targetDay) {
-    result.setDate(result.getDate() + 1);
-  }
-
-  if (interval > 1) {
-    result.setDate(result.getDate() + (interval - 1) * 7);
-  }
-
-  const year = result.getFullYear();
-  const month = String(result.getMonth() + 1).padStart(2, "0");
-  const day = String(result.getDate()).padStart(2, "0");
+function formatDateForInput(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function addMonthsSafe(date, monthsToAdd) {
+  const d = new Date(date);
+  const originalDay = d.getDate();
+  d.setDate(1);
+  d.setMonth(d.getMonth() + monthsToAdd);
+  const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  d.setDate(Math.min(originalDay, lastDay));
+  return d;
+}
+
+function addYearsSafe(date, yearsToAdd) {
+  const d = new Date(date);
+  const originalMonth = d.getMonth();
+  const originalDay = d.getDate();
+  d.setFullYear(d.getFullYear() + yearsToAdd, originalMonth, 1);
+  const lastDay = new Date(d.getFullYear(), originalMonth + 1, 0).getDate();
+  d.setDate(Math.min(originalDay, lastDay));
+  return d;
+}
+
+function computeNextRecurringDate(task) {
+  const interval = Math.max(1, Number(task.recurrenceInterval) || 1);
+  const base = getAnchorDate(task);
+  const result = new Date(base);
+
+  switch (task.recurrenceType) {
+    case "daily":
+      result.setDate(result.getDate() + interval);
+      return formatDateForInput(result);
+    case "weekly":
+      result.setDate(result.getDate() + interval * 7);
+      return formatDateForInput(result);
+    case "monthly":
+      return formatDateForInput(addMonthsSafe(result, interval));
+    case "yearly":
+      return formatDateForInput(addYearsSafe(result, interval));
+    default:
+      result.setDate(result.getDate() + interval * 7);
+      return formatDateForInput(result);
+  }
 }
 
 function recurringChildAlreadyExists(task, nextDueDate) {
@@ -426,21 +417,20 @@ function recurringChildAlreadyExists(task, nextDueDate) {
 function createNextRecurringTask(task) {
   if (!task.isRecurring) return;
 
-  const nextDueDate = computeNextWeeklyDate(task);
+  const nextDueDate = computeNextRecurringDate(task);
   if (recurringChildAlreadyExists(task, nextDueDate)) return;
 
   const tasks = getTasks();
   tasks.unshift({
     id: nextTaskId(),
     title: task.title,
-    owner: task.owner,
     priority: task.priority,
     dueDate: nextDueDate,
     notes: task.notes,
     status: "backlog",
     isRecurring: true,
+    recurrenceType: task.recurrenceType,
     recurrenceInterval: task.recurrenceInterval,
-    recurrenceDay: task.recurrenceDay,
     recurrenceSourceId: task.id,
     createdAt: Date.now(),
     updatedAt: Date.now()
@@ -573,7 +563,6 @@ function deleteBoard() {
 
 function switchBoard(boardId) {
   data.activeBoardId = boardId;
-  editingTaskId = null;
   clearForm();
   saveData();
   renderBoard();
@@ -596,7 +585,6 @@ document.getElementById("searchInput").addEventListener("input", event => {
   renderBoard();
 });
 document.getElementById("priorityFilter").addEventListener("change", renderBoard);
-document.getElementById("ownerFilter").addEventListener("change", renderBoard);
 document.getElementById("clearBoardBtn").addEventListener("click", clearBoardTasks);
 document.getElementById("exportBtn").addEventListener("click", exportData);
 document.getElementById("importFile").addEventListener("change", event => {
