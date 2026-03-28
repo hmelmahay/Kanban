@@ -5,10 +5,10 @@ const SUPABASE_URL  = 'https://sztatmknjyzzyzngvpff.supabase.co';
 const SUPABASE_KEY  = 'sb_publishable_GvPXZ8AVgix3aZ2UDS0YRQ_ktlLvMtB';
 
 // ── State ─────────────────────────────────────────────────────────────────────
-let db       = null;
-let boards   = [];
-let tasks    = [];
-let boardId  = null;
+let db       = null;   // Supabase client (null = localStorage mode)
+let boards   = [];     // [{id, name}]
+let tasks    = [];     // current board's tasks
+let boardId  = null;   // active board id
 let formVisible = true;
 let draggedId   = null;
 
@@ -21,6 +21,7 @@ async function initSupabase() {
   if (!SUPABASE_URL || !SUPABASE_KEY) return false;
   try {
     db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // Verify connection
     const { error } = await db.from('boards').select('id').limit(1);
     if (error) throw error;
     setStatus('Connected to Supabase');
@@ -128,7 +129,16 @@ async function loadTasks() {
   } else {
     tasks = JSON.parse(localStorage.getItem(tasksKey(boardId)) || '[]');
   }
+  await autoMoveTodayTasks();
   renderAll();
+}
+
+async function autoMoveTodayTasks() {
+  const today = new Date().toISOString().split('T')[0];
+  const toMove = tasks.filter(t => t.status === 'todo' && t.due_date === today);
+  for (const t of toMove) {
+    await updateTask(t.id, { status: 'doing' });
+  }
 }
 
 async function addTask(task) {
@@ -151,7 +161,33 @@ async function updateTask(id, changes) {
   const t = tasks.find(t => t.id === id);
   if (t) Object.assign(t, changes);
   if (!db) saveTasks();
+
+  // Spawn next occurrence when a recurring task is completed
+  if (changes.status === 'done' && t?.recurring && t?.due_date) {
+    const next = nextDueDate(t.due_date, t.recurring);
+    await addTask({
+      id:         uid(),
+      board_id:   boardId,
+      title:      t.title,
+      priority:   t.priority,
+      due_date:   next,
+      status:     'todo',
+      recurring:  t.recurring,
+      notes:      t.notes,
+      created_at: new Date().toISOString(),
+    });
+    return; // addTask calls renderAll
+  }
+
   renderAll();
+}
+
+function nextDueDate(iso, freq) {
+  const d = new Date(iso + 'T00:00:00');
+  if (freq === 'daily')   d.setDate(d.getDate() + 1);
+  if (freq === 'weekly')  d.setDate(d.getDate() + 7);
+  if (freq === 'monthly') d.setMonth(d.getMonth() + 1);
+  return d.toISOString().split('T')[0];
 }
 
 async function deleteTask(id) {
@@ -184,6 +220,7 @@ function renderAll() {
     return matchQ && matchP;
   });
 
+  // Stats
   document.getElementById('statTotal').textContent   = tasks.length;
   document.getElementById('statOpen').textContent    = tasks.filter(t => t.status === 'todo').length;
   document.getElementById('statBlocked').textContent = tasks.filter(t => t.status === 'doing').length;
@@ -239,7 +276,7 @@ function renderTask(t) {
       <div class="task-meta">
         <span class="badge priority-${t.priority}">${t.priority}</span>
         ${due ? `<span class="badge ${overdue ? 'badge-overdue' : 'badge-date'}">${overdue ? 'Overdue: ' : ''}${due}</span>` : ''}
-        ${t.recurring ? `<span class="badge badge-recurring">Recurring</span>` : ''}
+        ${t.recurring ? `<span class="badge badge-recurring">${t.recurring.charAt(0).toUpperCase() + t.recurring.slice(1)}</span>` : ''}
       </div>
       ${t.notes ? `<div class="task-notes">${escHtml(t.notes)}</div>` : ''}
       <div class="task-actions">
@@ -289,7 +326,7 @@ document.getElementById('addTaskBtn').addEventListener('click', async () => {
     priority:   document.getElementById('taskPriority').value,
     due_date:   document.getElementById('taskDueDate').value || null,
     status:     document.getElementById('taskStatus').value,
-    recurring:  document.getElementById('taskRecurring').checked,
+    recurring:  document.getElementById('taskRecurring').value,
     notes:      document.getElementById('taskNotes').value.trim(),
     created_at: new Date().toISOString(),
   };
@@ -299,9 +336,9 @@ document.getElementById('addTaskBtn').addEventListener('click', async () => {
   document.getElementById('taskTitle').value     = '';
   document.getElementById('taskDueDate').value   = '';
   document.getElementById('taskNotes').value     = '';
-  document.getElementById('taskRecurring').checked = false;
+  document.getElementById('taskRecurring').value = '';
   document.getElementById('taskPriority').value  = 'Medium';
-  document.getElementById('taskStatus').value    = 'todo';
+  document.getElementById('taskStatus').value    = 'backlog';
   document.getElementById('taskTitle').focus();
 });
 

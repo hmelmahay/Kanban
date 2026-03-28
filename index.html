@@ -54,10 +54,12 @@
         <option value="doing">Doing</option>
         <option value="done">Done</option>
       </select>
-      <label class="recurring-label">
-        <input id="taskRecurring" type="checkbox" />
-        Recurring
-      </label>
+      <select id="taskRecurring" class="form-select">
+        <option value="">Not Recurring</option>
+        <option value="daily">Daily</option>
+        <option value="weekly">Weekly</option>
+        <option value="monthly">Monthly</option>
+      </select>
       <input id="taskNotes" type="text" placeholder="Optional notes" class="form-input flex-2" />
       <button id="addTaskBtn" class="btn btn-primary">Add Task</button>
     </div>

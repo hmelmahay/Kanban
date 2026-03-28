@@ -133,6 +133,11 @@ body {
   border-color: var(--primary);
 }
 
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+}
+
 .form-select {
   background: var(--bg);
   border: 1px solid var(--border2);
