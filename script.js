@@ -1,4 +1,4 @@
-const STORAGE_KEY = "kanban-board-v5";
+const STORAGE_KEY = "kanban-board-v6";
 const DEFAULT_BOARD_ID = "board-1";
 
 const starterData = {
@@ -103,6 +103,40 @@ function labelForStatus(status) {
   return "Done";
 }
 
+function todayString() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function isDueToday(task) {
+  return !!task.dueDate && task.dueDate === todayString();
+}
+
+function autoMoveDueTodayTasks() {
+  let changed = false;
+
+  data.boards.forEach(board => {
+    board.tasks = board.tasks.map(task => {
+      if (task.status === "backlog" && isDueToday(task)) {
+        changed = true;
+        return {
+          ...task,
+          status: "inprogress",
+          updatedAt: Date.now()
+        };
+      }
+      return task;
+    });
+  });
+
+  if (changed) {
+    saveData();
+  }
+}
+
 function matchesFilters(task) {
   const priorityFilter = document.getElementById("priorityFilter").value;
 
@@ -125,9 +159,23 @@ function getVisibleTasks(status) {
     .filter(task => task.status === status)
     .filter(task => matchesFilters(task))
     .sort((a, b) => {
+      const todayA = isDueToday(a) ? 0 : 1;
+      const todayB = isDueToday(b) ? 0 : 1;
+      if (todayA !== todayB) return todayA - todayB;
+
       const priorityOrder = { High: 0, Medium: 1, Low: 2 };
       const p = priorityOrder[a.priority] - priorityOrder[b.priority];
       if (p !== 0) return p;
+
+      if (a.dueDate && b.dueDate) {
+        const d = a.dueDate.localeCompare(b.dueDate);
+        if (d !== 0) return d;
+      } else if (a.dueDate) {
+        return -1;
+      } else if (b.dueDate) {
+        return 1;
+      }
+
       return b.updatedAt - a.updatedAt;
     });
 }
@@ -186,6 +234,9 @@ function renderColumn(status, elementId) {
     const recurrenceText = task.isRecurring
       ? `<span class="badge recurrence-badge">${escapeHtml(task.recurrenceType)} • every ${task.recurrenceInterval}</span>`
       : "";
+    const todayText = isDueToday(task)
+      ? `<span class="badge due-today-badge">Today</span>`
+      : "";
 
     card.innerHTML = `
       <div class="task-title">${escapeHtml(task.title)}</div>
@@ -193,6 +244,7 @@ function renderColumn(status, elementId) {
         <span class="badge priority-${task.priority.toLowerCase()}">${escapeHtml(task.priority)}</span>
         <span class="badge status-${task.status}">${escapeHtml(labelForStatus(task.status))}</span>
         ${dueText ? `<span class="badge">Due: ${escapeHtml(dueText)}</span>` : ""}
+        ${todayText}
         ${recurrenceText}
       </div>
       ${notesText}
@@ -229,6 +281,7 @@ function renderFormVisibility() {
 }
 
 function renderBoard() {
+  autoMoveDueTodayTasks();
   buildBoardSelect();
   renderStats();
   renderFormVisibility();
