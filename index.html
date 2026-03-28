@@ -123,6 +123,59 @@
     </div>
   </main>
 
+  <!-- Edit Task Modal -->
+  <div class="modal-backdrop" id="editModalBackdrop">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="editModalTitle">
+      <div class="modal-header">
+        <h2 id="editModalTitle">Edit Task</h2>
+        <button class="modal-close" id="editModalCloseBtn">&times;</button>
+      </div>
+      <div class="form-grid">
+        <div class="field field-wide">
+          <label for="editTitle">Task title *</label>
+          <input id="editTitle" type="text" />
+        </div>
+        <div class="field">
+          <label for="editPriority">Priority</label>
+          <select id="editPriority">
+            <option>High</option>
+            <option>Medium</option>
+            <option>Low</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="editDueDate">Due date</label>
+          <input id="editDueDate" type="date" />
+        </div>
+        <div class="field">
+          <label for="editStatus">Status</label>
+          <select id="editStatus">
+            <option value="todo">To Do</option>
+            <option value="doing">Doing</option>
+            <option value="done">Done</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="editRecurring">Recurring</label>
+          <select id="editRecurring">
+            <option value="">Not Recurring</option>
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+          </select>
+        </div>
+        <div class="field field-wide">
+          <label for="editNotes">Notes</label>
+          <textarea id="editNotes" rows="4" placeholder="Optional notes"></textarea>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button id="editCancelBtn" class="btn btn-outline">Cancel</button>
+        <button id="editSaveBtn" class="btn btn-primary">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="script.js"></script>
 </body>

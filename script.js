@@ -277,6 +277,13 @@ function renderAll() {
       el.addEventListener('dragend', onDragEnd);
     });
 
+    col.querySelectorAll('.edit-task-btn').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        openEditModal(e.currentTarget.dataset.id);
+      });
+    });
+
     col.querySelectorAll('.delete-task-btn').forEach(btn => {
       btn.addEventListener('click', e => {
         e.stopPropagation();
@@ -316,6 +323,7 @@ function renderTask(t) {
       <div class="task-actions">
         ${idx > 0 ? `<button class="btn btn-icon move-btn" data-id="${t.id}" data-dir="-1" title="Move left">&#8592;</button>` : ''}
         ${idx < STATUSES.length - 1 ? `<button class="btn btn-icon move-btn" data-id="${t.id}" data-dir="1" title="Move right">&#8594;</button>` : ''}
+        <button class="btn btn-icon edit-task-btn" data-id="${t.id}" title="Edit">&#9998;</button>
         <button class="btn btn-icon-danger delete-task-btn" data-id="${t.id}" title="Delete">&#x2715;</button>
       </div>
     </div>
@@ -495,6 +503,54 @@ document.querySelectorAll('.column').forEach(col => {
     const task = tasks.find(t => t.id === draggedId);
     if (task && task.status !== newStatus) updateTask(draggedId, { status: newStatus });
   });
+});
+
+// ── Edit Modal ────────────────────────────────────────────────────────────────
+
+let editingTaskId = null;
+
+function openEditModal(id) {
+  const t = tasks.find(t => t.id === id);
+  if (!t) return;
+  editingTaskId = id;
+  document.getElementById('editTitle').value    = t.title;
+  document.getElementById('editPriority').value = t.priority;
+  document.getElementById('editDueDate').value  = t.due_date || '';
+  document.getElementById('editStatus').value   = t.status;
+  document.getElementById('editRecurring').value = t.recurring || '';
+  document.getElementById('editNotes').value    = t.notes || '';
+  document.getElementById('editModalBackdrop').classList.add('open');
+  document.getElementById('editTitle').focus();
+}
+
+function closeEditModal() {
+  document.getElementById('editModalBackdrop').classList.remove('open');
+  editingTaskId = null;
+}
+
+document.getElementById('editModalCloseBtn').addEventListener('click', closeEditModal);
+document.getElementById('editCancelBtn').addEventListener('click', closeEditModal);
+document.getElementById('editModalBackdrop').addEventListener('click', e => {
+  if (e.target === document.getElementById('editModalBackdrop')) closeEditModal();
+});
+
+document.getElementById('editSaveBtn').addEventListener('click', async () => {
+  if (!editingTaskId) return;
+  const title = document.getElementById('editTitle').value.trim();
+  if (!title) { document.getElementById('editTitle').focus(); return; }
+  await updateTask(editingTaskId, {
+    title,
+    priority:  document.getElementById('editPriority').value,
+    due_date:  document.getElementById('editDueDate').value || null,
+    status:    document.getElementById('editStatus').value,
+    recurring: document.getElementById('editRecurring').value,
+    notes:     document.getElementById('editNotes').value.trim(),
+  });
+  closeEditModal();
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeEditModal();
 });
 
 // ── Init ──────────────────────────────────────────────────────────────────────
