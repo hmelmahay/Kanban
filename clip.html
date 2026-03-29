@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Work Clip Board</title>
+  <link rel="stylesheet" href="clip.css" />
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <h1>Work Clip Board</h1>
+      <div class="subtitle">Paste work content &rarr; auto-syncs to Mac mini</div>
+    </div>
+    <div class="topbar-right">
+      <span id="sync-status" class="sync-dot" title="Checking connection..."></span>
+      <a href="index.html" class="btn btn-ghost">&#8592; Kanban</a>
+    </div>
+  </div>
+
+  <!-- Main layout -->
+  <div class="main">
+
+    <!-- Left: Paste form -->
+    <div class="panel form-panel">
+      <h2 class="panel-title">New Clip</h2>
+
+      <div class="field">
+        <label for="project-select">Project</label>
+        <select id="project-select" class="form-select">
+          <option value="">Loading projects…</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Type</label>
+        <div class="type-buttons">
+          <button class="type-btn active" data-type="slack">Slack</button>
+          <button class="type-btn" data-type="email">Email</button>
+          <button class="type-btn" data-type="note">Note</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="clip-title">Title <span class="required">*</span></label>
+        <input type="text" id="clip-title" class="form-input" placeholder="Brief description of this clip" />
+      </div>
+
+      <div class="field">
+        <label for="clip-content">Content</label>
+        <textarea id="clip-content" class="form-textarea" placeholder="Paste your Slack message, email, or notes here…"></textarea>
+      </div>
+
+      <div class="field">
+        <label>Attachments</label>
+        <div id="drop-zone" class="drop-zone">
+          <div class="drop-zone-inner">
+            <span class="drop-icon">&#128206;</span>
+            <span>Drag &amp; drop files here, or</span>
+            <label class="btn btn-ghost btn-sm" style="cursor:pointer">
+              Browse
+              <input type="file" id="file-input" multiple style="display:none" />
+            </label>
+          </div>
+        </div>
+        <ul id="file-list" class="file-list"></ul>
+      </div>
+
+      <div class="field">
+        <button id="save-btn" class="btn btn-primary btn-full">Save Clip</button>
+        <div id="save-msg" class="save-msg"></div>
+      </div>
+    </div>
+
+    <!-- Right: Recent clips + project management -->
+    <div class="panel right-panel">
+
+      <!-- Recent clips -->
+      <div class="section">
+        <h2 class="panel-title">Recent Clips</h2>
+        <div id="clips-list" class="clips-list">
+          <div class="empty-state">No clips yet.</div>
+        </div>
+      </div>
+
+      <!-- Manage Projects (collapsible) -->
+      <div class="section">
+        <button class="section-toggle" id="projects-toggle">
+          <span>Manage Projects</span>
+          <span class="toggle-icon">&#9654;</span>
+        </button>
+        <div id="projects-panel" class="projects-panel" style="display:none">
+          <p class="hint">Folder names must match exactly what exists on your Mac mini under <code>/users/steve/workpm/projects/</code></p>
+          <table class="projects-table" id="projects-table">
+            <thead>
+              <tr><th>Display Name</th><th>Folder Name</th><th></th></tr>
+            </thead>
+            <tbody id="projects-tbody"></tbody>
+          </table>
+          <div class="add-project-row">
+            <input type="text" id="new-project-name" class="form-input" placeholder="Display name (e.g. Alpha Project)" />
+            <input type="text" id="new-folder-name" class="form-input" placeholder="Folder name (e.g. alpha-project)" />
+            <button id="add-project-btn" class="btn btn-primary btn-sm">Add</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="clip.js"></script>
+</body>
+</html>
