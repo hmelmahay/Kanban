@@ -154,7 +154,8 @@ async function loadTasks() {
 }
 
 async function autoMoveTodayTasks() {
-  const today = new Date().toISOString().split('T')[0];
+  const d = new Date();
+  const today = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   const toMove = tasks.filter(t => t.status === 'todo' && t.due_date === today);
   for (const t of toMove) {
     await updateTask(t.id, { status: 'doing' });
