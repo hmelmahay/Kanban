@@ -15,7 +15,7 @@ const https = require('https');
 const SUPABASE_URL  = 'https://sztatmknjyzzyzngvpff.supabase.co';
 const SUPABASE_KEY  = 'sb_publishable_GvPXZ8AVgix3aZ2UDS0YRQ_ktlLvMtB';
 const BASE_PATH     = '/users/steve/workpm/projects';
-const NEW_FILES_DIR = 'new files';
+const NEW_FILES_DIR = 'New_Files';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function log(msg) {
@@ -117,14 +117,15 @@ async function sync() {
       const destDir = path.join(BASE_PATH, project.folder_name, NEW_FILES_DIR);
       fs.mkdirSync(destDir, { recursive: true });
 
-      // Write markdown file
-      const date     = formatDate(clip.created_at);
-      const slug     = slugify(clip.title);
-      const mdName   = `${date}-${slug}.md`;
-      const mdPath   = path.join(destDir, mdName);
-      const markdown = buildMarkdown(clip, project.name);
-      fs.writeFileSync(mdPath, markdown, 'utf8');
-      log(`  Wrote: ${path.join(project.folder_name, NEW_FILES_DIR, mdName)}`);
+      // Write markdown only if content was pasted
+      if (clip.content && clip.content.trim()) {
+        const date     = formatDate(clip.created_at);
+        const slug     = slugify(clip.title);
+        const mdName   = `${date}-${slug}.md`;
+        const mdPath   = path.join(destDir, mdName);
+        fs.writeFileSync(mdPath, clip.content.trim(), 'utf8');
+        log(`  Wrote: ${path.join(project.folder_name, NEW_FILES_DIR, mdName)}`);
+      }
 
       // Download attachments
       for (const filePath of (clip.file_paths || [])) {
