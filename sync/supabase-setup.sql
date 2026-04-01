@@ -1,10 +1,44 @@
 -- ============================================================
--- Work Clip Sync — Supabase Setup
+-- Kanban + Work Clip Sync — Supabase Setup
 -- Run this in your Supabase project's SQL Editor
 -- (supabase.com → your project → SQL Editor → New query)
 -- ============================================================
 
--- 1. Projects table
+-- 1. Kanban boards table
+create table if not exists boards (
+  id         uuid primary key default gen_random_uuid(),
+  name       text not null,
+  created_at timestamptz default now()
+);
+
+-- 2. Kanban tasks table
+create table if not exists tasks (
+  id         uuid primary key default gen_random_uuid(),
+  board_id   uuid references boards(id) on delete cascade,
+  title      text not null,
+  priority   text,
+  status     text,
+  due_date   text,
+  recurring  text,
+  notes      text,
+  created_at timestamptz default now()
+);
+
+-- RLS for Kanban tables
+alter table boards enable row level security;
+alter table tasks  enable row level security;
+
+create policy "anon full access on boards"
+  on boards for all
+  using (true)
+  with check (true);
+
+create policy "anon full access on tasks"
+  on tasks for all
+  using (true)
+  with check (true);
+
+-- 3. Projects table
 create table if not exists projects (
   id          uuid primary key default gen_random_uuid(),
   name        text not null,          -- Display name: "Alpha Project"
@@ -12,7 +46,7 @@ create table if not exists projects (
   created_at  timestamptz default now()
 );
 
--- 2. Clips table
+-- 4. Clips table
 create table if not exists clips (
   id          uuid primary key default gen_random_uuid(),
   title       text not null,
@@ -28,7 +62,7 @@ create table if not exists clips (
 create index if not exists clips_synced_idx on clips(synced) where synced = false;
 
 -- ============================================================
--- 3. Storage bucket
+-- 5. Storage bucket
 -- Run this separately in the Supabase dashboard:
 --   Storage → New bucket → Name: "clip-attachments" → Private
 --
@@ -38,7 +72,7 @@ create index if not exists clips_synced_idx on clips(synced) where synced = fals
 -- on conflict do nothing;
 -- ============================================================
 
--- 4. RLS Policies (enable Row Level Security then allow anon key full access)
+-- 6. RLS Policies for Clip Sync tables
 alter table projects enable row level security;
 alter table clips     enable row level security;
 
