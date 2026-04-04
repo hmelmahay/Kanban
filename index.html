@@ -60,6 +60,7 @@
         <option value="weekly">Weekly</option>
         <option value="monthly">Monthly</option>
       </select>
+      <input id="taskRecurringInterval" type="number" min="2" max="52" value="1" class="form-input" style="width:60px;display:none" title="Every N weeks/months" />
       <input id="taskNotes" type="text" placeholder="Optional notes" class="form-input flex-2" />
       <button id="addTaskBtn" class="btn btn-primary">Add Task</button>
     </div>
@@ -163,6 +164,7 @@
             <option value="weekly">Weekly</option>
             <option value="monthly">Monthly</option>
           </select>
+          <input id="editRecurringInterval" type="number" min="2" max="52" value="1" style="width:60px;display:none;margin-top:4px" title="Every N weeks/months" />
         </div>
         <div class="field field-wide">
           <label for="editNotes">Notes</label>

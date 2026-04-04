@@ -203,11 +203,41 @@ async function updateTask(id, changes) {
   renderAll();
 }
 
+function parseRecurring(val) {
+  if (!val) return { unit: '', n: 1 };
+  const m = val.match(/^(\d+)-(weekly|monthly)$/);
+  if (m) return { unit: m[2], n: parseInt(m[1]) };
+  return { unit: val, n: 1 };
+}
+
+function recurringLabel(val) {
+  const { unit, n } = parseRecurring(val);
+  if (!unit) return '';
+  if (unit === 'daily') return 'Daily';
+  if (unit === 'weekly')  return n === 1 ? 'Weekly'  : `Every ${n} Weeks`;
+  if (unit === 'monthly') return n === 1 ? 'Monthly' : `Every ${n} Months`;
+  return val;
+}
+
+function buildRecurringValue(selectId, intervalId) {
+  const unit = document.getElementById(selectId).value;
+  if (!unit || unit === 'daily') return unit;
+  const n = parseInt(document.getElementById(intervalId).value) || 1;
+  return n > 1 ? `${n}-${unit}` : unit;
+}
+
+function syncIntervalInput(selectId, intervalId) {
+  const unit = document.getElementById(selectId).value;
+  const inp = document.getElementById(intervalId);
+  inp.style.display = (unit === 'weekly' || unit === 'monthly') ? 'inline-block' : 'none';
+}
+
 function nextDueDate(iso, freq) {
   const d = new Date(iso + 'T00:00:00');
-  if (freq === 'daily')   d.setDate(d.getDate() + 1);
-  if (freq === 'weekly')  d.setDate(d.getDate() + 7);
-  if (freq === 'monthly') d.setMonth(d.getMonth() + 1);
+  const { unit, n } = parseRecurring(freq);
+  if (unit === 'daily')   d.setDate(d.getDate() + n);
+  if (unit === 'weekly')  d.setDate(d.getDate() + 7 * n);
+  if (unit === 'monthly') d.setMonth(d.getMonth() + n);
   return d.toISOString().split('T')[0];
 }
 
@@ -318,7 +348,7 @@ function renderTask(t) {
         <span class="badge priority-${t.priority}">${t.priority}</span>
         ${allBoardsMode ? `<span class="badge badge-board">${escHtml(boards.find(b => b.id === t.board_id)?.name || '')}</span>` : ''}
         ${due ? `<span class="badge ${overdue ? 'badge-overdue' : 'badge-date'}">${overdue ? 'Overdue: ' : ''}${due}</span>` : ''}
-        ${t.recurring ? `<span class="badge badge-recurring">${t.recurring.charAt(0).toUpperCase() + t.recurring.slice(1)}</span>` : ''}
+        ${t.recurring ? `<span class="badge badge-recurring">${recurringLabel(t.recurring)}</span>` : ''}
       </div>
       ${t.notes ? `<div class="task-notes">${escHtml(t.notes)}</div>` : ''}
       <div class="task-actions">
@@ -369,7 +399,7 @@ document.getElementById('addTaskBtn').addEventListener('click', async () => {
     priority:   document.getElementById('taskPriority').value,
     due_date:   document.getElementById('taskDueDate').value || null,
     status:     document.getElementById('taskStatus').value,
-    recurring:  document.getElementById('taskRecurring').value,
+    recurring:  buildRecurringValue('taskRecurring', 'taskRecurringInterval'),
     notes:      document.getElementById('taskNotes').value.trim(),
     created_at: new Date().toISOString(),
   };
@@ -380,6 +410,7 @@ document.getElementById('addTaskBtn').addEventListener('click', async () => {
   document.getElementById('taskDueDate').value   = '';
   document.getElementById('taskNotes').value     = '';
   document.getElementById('taskRecurring').value = '';
+  syncIntervalInput('taskRecurring', 'taskRecurringInterval');
   document.getElementById('taskPriority').value  = 'Medium';
   document.getElementById('taskStatus').value    = 'todo';
   document.getElementById('taskTitle').focus();
@@ -518,7 +549,10 @@ function openEditModal(id) {
   document.getElementById('editPriority').value = t.priority;
   document.getElementById('editDueDate').value  = t.due_date || '';
   document.getElementById('editStatus').value   = t.status;
-  document.getElementById('editRecurring').value = t.recurring || '';
+  const { unit: rUnit, n: rN } = parseRecurring(t.recurring || '');
+  document.getElementById('editRecurring').value = rUnit;
+  document.getElementById('editRecurringInterval').value = rN;
+  syncIntervalInput('editRecurring', 'editRecurringInterval');
   document.getElementById('editNotes').value    = t.notes || '';
   document.getElementById('editModalBackdrop').classList.add('open');
   document.getElementById('editTitle').focus();
@@ -544,7 +578,7 @@ document.getElementById('editSaveBtn').addEventListener('click', async () => {
     priority:  document.getElementById('editPriority').value,
     due_date:  document.getElementById('editDueDate').value || null,
     status:    document.getElementById('editStatus').value,
-    recurring: document.getElementById('editRecurring').value,
+    recurring: buildRecurringValue('editRecurring', 'editRecurringInterval'),
     notes:     document.getElementById('editNotes').value.trim(),
   });
   closeEditModal();
@@ -553,6 +587,9 @@ document.getElementById('editSaveBtn').addEventListener('click', async () => {
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeEditModal();
 });
+
+document.getElementById('taskRecurring').addEventListener('change', () => syncIntervalInput('taskRecurring', 'taskRecurringInterval'));
+document.getElementById('editRecurring').addEventListener('change', () => syncIntervalInput('editRecurring', 'editRecurringInterval'));
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 
