@@ -336,6 +336,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .badge-overdue    { background: #3b1515; color: #f87171; }
 .badge-recurring  { background: #1a2535; color: #60a5fa; }
 .badge-board      { background: #1e2d40; color: #7dd3fc; }
+.badge-done-date  { background: #1a2d1a; color: #86efac; }
 
 .task-notes {
   font-size: 12px;

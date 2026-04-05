@@ -212,6 +212,11 @@ async function addTask(task) {
 }
 
 async function updateTask(id, changes) {
+  if (changes.status === 'done' && !changes.completed_at) {
+    changes.completed_at = new Date().toISOString().split('T')[0];
+  } else if (changes.status && changes.status !== 'done') {
+    changes.completed_at = null;
+  }
   if (db) {
     const { error } = await db.from('tasks').update(changes).eq('id', id);
     if (error) { alert('Error updating task: ' + error.message); return; }
@@ -375,8 +380,12 @@ function renderAll() {
 
 function renderTask(t) {
   const idx = STATUSES.indexOf(t.status);
+  const done = t.status === 'done';
   const due = t.due_date ? formatDate(t.due_date) : null;
-  const overdue = isOverdue(t.due_date);
+  const overdue = !done && isOverdue(t.due_date);
+  const dateBadge = done
+    ? (t.completed_at ? `<span class="badge badge-done-date">Done ${formatDate(t.completed_at)}</span>` : '')
+    : due ? `<span class="badge ${overdue ? 'badge-overdue' : 'badge-date'}">${overdue ? 'Overdue: ' : ''}${due}</span>` : '';
 
   return `
     <div class="task" draggable="true" data-id="${t.id}">
@@ -384,7 +393,7 @@ function renderTask(t) {
       <div class="task-meta">
         <span class="badge priority-${t.priority}">${t.priority}</span>
         ${allBoardsMode ? `<span class="badge badge-board">${escHtml(boards.find(b => b.id === t.board_id)?.name || '')}</span>` : ''}
-        ${due ? `<span class="badge ${overdue ? 'badge-overdue' : 'badge-date'}">${overdue ? 'Overdue: ' : ''}${due}</span>` : ''}
+        ${dateBadge}
         ${t.recurring ? `<span class="badge badge-recurring">${recurringLabel(t.recurring)}</span>` : ''}
       </div>
       ${t.notes ? `<div class="task-notes">${escHtml(t.notes)}</div>` : ''}
@@ -627,6 +636,18 @@ document.addEventListener('keydown', e => {
 
 document.getElementById('taskRecurring').addEventListener('change', () => syncIntervalInput('taskRecurring', 'taskRecurringInterval'));
 document.getElementById('editRecurring').addEventListener('change', () => syncIntervalInput('editRecurring', 'editRecurringInterval'));
+
+document.getElementById('clearDoneBtn').addEventListener('click', async () => {
+  const doneTasks = tasks.filter(t => t.status === 'done' && t.board_id === boardId);
+  if (doneTasks.length === 0) return;
+  if (!confirm(`Remove all ${doneTasks.length} done task(s)?`)) return;
+  if (db) {
+    await db.from('tasks').delete().in('id', doneTasks.map(t => t.id));
+  }
+  tasks = tasks.filter(t => !(t.status === 'done' && t.board_id === boardId));
+  if (!db) saveTasks();
+  renderAll();
+});
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 
