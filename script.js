@@ -16,19 +16,56 @@ let allBoardsMode  = false;
 const BOARDS_KEY = 'kanban_boards_v2';
 const tasksKey   = id => `kanban_tasks_v2_${id}`;
 
+// ── Auth ──────────────────────────────────────────────────────────────────────
+
+function showApp() {
+  document.getElementById('loginOverlay').classList.add('hidden');
+}
+
+function showLogin(msg) {
+  document.getElementById('loginOverlay').classList.remove('hidden');
+  const err = document.getElementById('loginError');
+  if (msg) { err.textContent = msg; err.style.display = 'block'; }
+  else       { err.style.display = 'none'; }
+}
+
+document.getElementById('loginBtn').addEventListener('click', async () => {
+  const btn      = document.getElementById('loginBtn');
+  const email    = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  if (!email || !password) { showLogin('Enter your email and password.'); return; }
+  btn.disabled = true;
+  btn.textContent = 'Signing in…';
+  const { error } = await db.auth.signInWithPassword({ email, password });
+  btn.disabled = false;
+  btn.textContent = 'Sign In';
+  if (error) { showLogin(error.message); return; }
+  showApp();
+});
+
+document.getElementById('loginPassword').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('loginBtn').click();
+});
+
+document.getElementById('signOutBtn').addEventListener('click', async () => {
+  await db.auth.signOut();
+  showLogin();
+});
+
 // ── Supabase init ─────────────────────────────────────────────────────────────
 
 async function initSupabase() {
   if (!SUPABASE_URL || !SUPABASE_KEY) return false;
   try {
     db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    // Verify connection
-    const { error } = await db.from('boards').select('id').limit(1);
-    if (error) throw error;
+    // Check for existing session
+    const { data: { session } } = await db.auth.getSession();
+    if (!session) { showLogin(); return false; }
+    showApp();
     setStatus('Connected to Supabase');
     return true;
   } catch (e) {
-    console.warn('Supabase unavailable, using localStorage:', e.message);
+    console.warn('Supabase unavailable:', e.message);
     db = null;
     setStatus('Local mode (Supabase not configured)');
     return false;
@@ -594,6 +631,6 @@ document.getElementById('editRecurring').addEventListener('change', () => syncIn
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 (async () => {
-  await initSupabase();
-  await loadBoards();
+  const authed = await initSupabase();
+  if (authed) await loadBoards();
 })();
