@@ -126,29 +126,25 @@ async function saveClip() {
   showMsg('', '');
 
   try {
-    // 1. Insert clip row (no file_paths yet)
+    // 1. Upload files first using a temp ID, so we don't create a dangling clip row on failure
+    const tempId = crypto.randomUUID();
+    const uploadedPaths = [];
+    for (const file of pendingFiles) {
+      const filePath = `${tempId}/${file.name}`;
+      const { error: upErr } = await db.storage
+        .from('clip-attachments')
+        .upload(filePath, file, { upsert: true });
+      if (upErr) throw new Error(`Failed to upload "${file.name}": ${upErr.message}`);
+      uploadedPaths.push(filePath);
+    }
+
+    // 2. Insert clip row now that files are safely uploaded
     const { data: clip, error: insertErr } = await db
       .from('clips')
-      .insert({ title, content, clip_type: activeType, project_id: projectId, file_paths: [], synced: false })
+      .insert({ title, content, clip_type: activeType, project_id: projectId, file_paths: uploadedPaths, synced: false })
       .select()
       .single();
     if (insertErr) throw insertErr;
-
-    // 2. Upload files if any
-    const uploadedPaths = [];
-    for (const file of pendingFiles) {
-      const path = `${clip.id}/${file.name}`;
-      const { error: upErr } = await db.storage
-        .from('clip-attachments')
-        .upload(path, file, { upsert: true });
-      if (upErr) throw new Error(`Failed to upload "${file.name}": ${upErr.message}`);
-      uploadedPaths.push(path);
-    }
-
-    // 3. Update clip with file paths if any were uploaded
-    if (uploadedPaths.length) {
-      await db.from('clips').update({ file_paths: uploadedPaths }).eq('id', clip.id);
-    }
 
     // 4. Reset form
     document.getElementById('clip-title').value = '';
