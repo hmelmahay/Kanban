@@ -127,23 +127,22 @@ async function sync() {
         log(`  Wrote: ${path.join(project.folder_name, NEW_FILES_DIR, mdName)}`);
       }
 
-      // Download attachments
+      // Download attachments — abort clip if any file fails
       for (const filePath of (clip.file_paths || [])) {
         const fname = path.basename(filePath);
         const dest  = path.join(destDir, fname);
-        try {
-          const { data: signedData, error: signErr } = await db.storage
-            .from('clip-attachments')
-            .createSignedUrl(filePath, 300);  // 5 min signed URL
-          if (signErr) throw signErr;
-          await downloadFile(signedData.signedUrl, dest);
-          log(`  Downloaded: ${fname}`);
-        } catch (fileErr) {
-          log(`  WARN: Could not download "${fname}": ${fileErr.message}`);
-        }
+        const { data: signedData, error: signErr } = await db.storage
+          .from('clip-attachments')
+          .createSignedUrl(filePath, 300);  // 5 min signed URL
+        if (signErr) throw new Error(`Signed URL failed for "${fname}": ${signErr.message}`);
+        await downloadFile(signedData.signedUrl, dest);
+        log(`  Downloaded: ${fname}`);
       }
 
-      // Mark as synced
+      // Delete storage files (no longer needed after download) then mark clip as synced
+      if (clip.file_paths && clip.file_paths.length) {
+        await db.storage.from('clip-attachments').remove(clip.file_paths);
+      }
       const { error: updateErr } = await db
         .from('clips')
         .update({ synced: true })
