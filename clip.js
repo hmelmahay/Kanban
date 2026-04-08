@@ -141,8 +141,8 @@ async function saveClip() {
       const { error: upErr } = await db.storage
         .from('clip-attachments')
         .upload(path, file, { upsert: true });
-      if (upErr) console.warn('File upload error:', upErr.message);
-      else uploadedPaths.push(path);
+      if (upErr) throw new Error(`Failed to upload "${file.name}": ${upErr.message}`);
+      uploadedPaths.push(path);
     }
 
     // 3. Update clip with file paths if any were uploaded
