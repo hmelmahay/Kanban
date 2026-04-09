@@ -330,6 +330,10 @@ function renderAll() {
     const colTasks = visible
       .filter(t => t.status === status)
       .sort((a, b) => {
+        if (status === 'doing') {
+          const P = { High: 0, Medium: 1, Low: 2 };
+          return (P[a.priority] ?? 1) - (P[b.priority] ?? 1);
+        }
         if (!a.due_date && !b.due_date) return 0;
         if (!a.due_date) return 1;
         if (!b.due_date) return -1;
