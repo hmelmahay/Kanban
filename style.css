@@ -305,6 +305,14 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 .task.dragging { opacity: 0.4; }
 
+.task.drop-before {
+  box-shadow: 0 -3px 0 0 var(--primary);
+}
+
+.column-body.drop-end > .task:last-child {
+  box-shadow: 0 3px 0 0 var(--primary);
+}
+
 .task-title {
   font-weight: 600;
   font-size: 13px;
