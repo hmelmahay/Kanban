@@ -331,8 +331,8 @@ function renderAll() {
       .filter(t => t.status === status)
       .sort((a, b) => {
         if (status === 'doing') {
-          const P = { High: 0, Medium: 1, Low: 2 };
-          return (P[a.priority] ?? 1) - (P[b.priority] ?? 1);
+          const P = { Critical: 0, High: 1, Medium: 2, Low: 3 };
+          return (P[a.priority] ?? 2) - (P[b.priority] ?? 2);
         }
         if (!a.due_date && !b.due_date) return 0;
         if (!a.due_date) return 1;

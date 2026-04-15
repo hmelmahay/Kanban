@@ -328,6 +328,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   font-weight: 700;
 }
 
+.priority-Critical { background: #4a0d0d; color: #fca5a5; border: 1px solid #ef4444; }
 .priority-High    { background: #3b1515; color: #f87171; }
 .priority-Medium  { background: #2d2008; color: #fbbf24; }
 .priority-Low     { background: #1a2535; color: #60a5fa; }
