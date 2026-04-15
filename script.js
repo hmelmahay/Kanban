@@ -195,7 +195,7 @@ async function autoMoveTodayTasks() {
   const today = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   const toMove = tasks.filter(t => t.status === 'todo' && t.due_date === today);
   for (const t of toMove) {
-    await updateTask(t.id, { status: 'doing' });
+    await updateTask(t.id, { status: 'doing', sort_order: nextSortOrder('doing', t.board_id) });
   }
 }
 
@@ -237,6 +237,7 @@ async function updateTask(id, changes) {
       status:     'todo',
       recurring:  t.recurring,
       notes:      t.notes,
+      sort_order: nextSortOrder('todo'),
       created_at: new Date().toISOString(),
     });
     return; // addTask calls renderAll
@@ -330,10 +331,12 @@ function renderAll() {
     const colTasks = visible
       .filter(t => t.status === status)
       .sort((a, b) => {
-        if (status === 'doing') {
-          const P = { Critical: 0, High: 1, Medium: 2, Low: 3 };
-          return (P[a.priority] ?? 2) - (P[b.priority] ?? 2);
+        // To Do and Doing use manual sort_order (drag to reorder)
+        if (status === 'todo' || status === 'doing') {
+          return (a.sort_order ?? Number.MAX_SAFE_INTEGER) -
+                 (b.sort_order ?? Number.MAX_SAFE_INTEGER);
         }
+        // Done: keep due-date sort
         if (!a.due_date && !b.due_date) return 0;
         if (!a.due_date) return 1;
         if (!b.due_date) return -1;
@@ -376,7 +379,7 @@ function renderAll() {
         if (!task) return;
         const idx = STATUSES.indexOf(task.status);
         const next = STATUSES[idx + Number(dir)];
-        if (next) updateTask(id, { status: next });
+        if (next) updateTask(id, { status: next, sort_order: nextSortOrder(next, task.board_id) });
       });
     });
   });
@@ -442,15 +445,17 @@ document.getElementById('addTaskBtn').addEventListener('click', async () => {
   const title = document.getElementById('taskTitle').value.trim();
   if (!title) { document.getElementById('taskTitle').focus(); return; }
 
+  const status = document.getElementById('taskStatus').value;
   const task = {
     id:         uid(),
     board_id:   boardId,
     title,
     priority:   document.getElementById('taskPriority').value,
     due_date:   document.getElementById('taskDueDate').value || null,
-    status:     document.getElementById('taskStatus').value,
+    status,
     recurring:  buildRecurringValue('taskRecurring', 'taskRecurringInterval'),
     notes:      document.getElementById('taskNotes').value.trim(),
+    sort_order: nextSortOrder(status),
     created_at: new Date().toISOString(),
   };
 
@@ -554,6 +559,45 @@ document.getElementById('priorityFilter').addEventListener('change', renderAll);
 
 // ── Drag & Drop ───────────────────────────────────────────────────────────────
 
+function nextSortOrder(status, bid = boardId) {
+  const siblings = tasks.filter(t => t.status === status && t.board_id === bid);
+  const max = siblings.reduce((m, t) => Math.max(m, t.sort_order ?? 0), 0);
+  return max + 1000;
+}
+
+function getDragAfterElement(container, y) {
+  const cards = [...container.querySelectorAll('.task:not(.dragging)')];
+  let closest = { offset: -Infinity, element: null };
+  for (const child of cards) {
+    const box = child.getBoundingClientRect();
+    const offset = y - box.top - box.height / 2;
+    if (offset < 0 && offset > closest.offset) {
+      closest = { offset, element: child };
+    }
+  }
+  return closest.element;
+}
+
+function computeSortOrder(newStatus, afterElement, draggedTaskId) {
+  const siblings = tasks
+    .filter(t => t.status === newStatus && t.id !== draggedTaskId)
+    .sort((a, b) =>
+      (a.sort_order ?? Number.MAX_SAFE_INTEGER) -
+      (b.sort_order ?? Number.MAX_SAFE_INTEGER)
+    );
+  if (!afterElement) {
+    const last = siblings[siblings.length - 1];
+    return (last?.sort_order ?? 0) + 1000;
+  }
+  const afterId = afterElement.dataset.id;
+  const afterIdx = siblings.findIndex(t => t.id === afterId);
+  const nextTask = siblings[afterIdx];
+  const prevTask = siblings[afterIdx - 1];
+  const nextOrder = nextTask?.sort_order ?? ((prevTask?.sort_order ?? 0) + 2000);
+  const prevOrder = prevTask?.sort_order ?? (nextOrder - 2000);
+  return (prevOrder + nextOrder) / 2;
+}
+
 function onDragStart(e) {
   draggedId = e.currentTarget.dataset.id;
   e.currentTarget.classList.add('dragging');
@@ -564,26 +608,63 @@ function onDragEnd(e) {
   e.currentTarget.classList.remove('dragging');
   draggedId = null;
   document.querySelectorAll('.column').forEach(c => c.classList.remove('drag-over'));
+  document.querySelectorAll('.task.drop-before').forEach(el => el.classList.remove('drop-before'));
+  document.querySelectorAll('.column-body.drop-end').forEach(el => el.classList.remove('drop-end'));
 }
 
 document.querySelectorAll('.column').forEach(col => {
+  const body = col.querySelector('.column-body');
+
   col.addEventListener('dragover', e => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     col.classList.add('drag-over');
+
+    // Show insertion indicator for reorder-enabled columns
+    const status = col.dataset.status;
+    if (status === 'todo' || status === 'doing') {
+      const after = getDragAfterElement(body, e.clientY);
+      body.querySelectorAll('.task.drop-before').forEach(el => el.classList.remove('drop-before'));
+      if (after) {
+        after.classList.add('drop-before');
+        body.classList.remove('drop-end');
+      } else {
+        body.classList.add('drop-end');
+      }
+    }
   });
 
   col.addEventListener('dragleave', e => {
-    if (!col.contains(e.relatedTarget)) col.classList.remove('drag-over');
+    if (!col.contains(e.relatedTarget)) {
+      col.classList.remove('drag-over');
+      body.querySelectorAll('.task.drop-before').forEach(el => el.classList.remove('drop-before'));
+      body.classList.remove('drop-end');
+    }
   });
 
   col.addEventListener('drop', e => {
     e.preventDefault();
     col.classList.remove('drag-over');
+    body.querySelectorAll('.task.drop-before').forEach(el => el.classList.remove('drop-before'));
+    body.classList.remove('drop-end');
     if (!draggedId) return;
+
     const newStatus = col.dataset.status;
     const task = tasks.find(t => t.id === draggedId);
-    if (task && task.status !== newStatus) updateTask(draggedId, { status: newStatus });
+    if (!task) return;
+
+    const changes = {};
+    if (task.status !== newStatus) changes.status = newStatus;
+
+    if (newStatus === 'todo' || newStatus === 'doing') {
+      const after = getDragAfterElement(body, e.clientY);
+      changes.sort_order = computeSortOrder(newStatus, after, draggedId);
+    } else if (changes.status) {
+      // Moving into Done: append to end so re-promotion preserves a sensible order
+      changes.sort_order = nextSortOrder(newStatus, task.board_id);
+    }
+
+    if (Object.keys(changes).length) updateTask(draggedId, changes);
   });
 });
 
@@ -623,14 +704,20 @@ document.getElementById('editSaveBtn').addEventListener('click', async () => {
   if (!editingTaskId) return;
   const title = document.getElementById('editTitle').value.trim();
   if (!title) { document.getElementById('editTitle').focus(); return; }
-  await updateTask(editingTaskId, {
+  const t = tasks.find(t => t.id === editingTaskId);
+  const newStatus = document.getElementById('editStatus').value;
+  const changes = {
     title,
     priority:  document.getElementById('editPriority').value,
     due_date:  document.getElementById('editDueDate').value || null,
-    status:    document.getElementById('editStatus').value,
+    status:    newStatus,
     recurring: buildRecurringValue('editRecurring', 'editRecurringInterval'),
     notes:     document.getElementById('editNotes').value.trim(),
-  });
+  };
+  if (t && t.status !== newStatus) {
+    changes.sort_order = nextSortOrder(newStatus, t.board_id);
+  }
+  await updateTask(editingTaskId, changes);
   closeEditModal();
 });
 
