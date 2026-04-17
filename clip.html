@@ -95,13 +95,15 @@
           <p class="hint">Folder names must match exactly what exists on your Mac mini under <code>/users/steve/workpm/projects/</code></p>
           <table class="projects-table" id="projects-table">
             <thead>
-              <tr><th>Display Name</th><th>Folder Name</th><th></th></tr>
+              <tr><th>Display Name</th><th>Base Path</th><th>Folder Name</th><th>Subfolder</th><th></th></tr>
             </thead>
             <tbody id="projects-tbody"></tbody>
           </table>
           <div class="add-project-row">
-            <input type="text" id="new-project-name" class="form-input" placeholder="Display name (e.g. Alpha Project)" />
-            <input type="text" id="new-folder-name" class="form-input" placeholder="Folder name (e.g. alpha-project)" />
+            <input type="text" id="new-project-name" class="form-input" placeholder="Display name (e.g. Finance)" />
+            <input type="text" id="new-base-path" class="form-input" placeholder="Base path (blank = default)" />
+            <input type="text" id="new-folder-name" class="form-input" placeholder="Folder name (e.g. Finance)" />
+            <input type="text" id="new-subfolder-name" class="form-input" placeholder="Subfolder (default: New_Files)" />
             <button id="add-project-btn" class="btn btn-primary btn-sm">Add</button>
           </div>
         </div>

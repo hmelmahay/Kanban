@@ -88,7 +88,7 @@ async function sync() {
   // Fetch unsynced clips with their project info
   const { data: clips, error: fetchErr } = await db
     .from('clips')
-    .select('*, projects(name, folder_name)')
+    .select('*, projects(name, folder_name, subfolder, base_path)')
     .eq('synced', false)
     .order('created_at');
 
@@ -113,8 +113,9 @@ async function sync() {
         continue;
       }
 
-      // Resolve destination folder
-      const destDir = path.join(BASE_PATH, project.folder_name, NEW_FILES_DIR);
+      // Resolve destination folder — use project's base_path if set, else global BASE_PATH
+      const rootPath = project.base_path || BASE_PATH;
+      const destDir  = path.join(rootPath, project.folder_name, project.subfolder || NEW_FILES_DIR);
       fs.mkdirSync(destDir, { recursive: true });
 
       // Write markdown only if content was pasted
@@ -124,7 +125,7 @@ async function sync() {
         const mdName   = `${date}-${slug}.md`;
         const mdPath   = path.join(destDir, mdName);
         fs.writeFileSync(mdPath, clip.content.trim(), 'utf8');
-        log(`  Wrote: ${path.join(project.folder_name, NEW_FILES_DIR, mdName)}`);
+        log(`  Wrote: ${path.join(project.folder_name, project.subfolder || NEW_FILES_DIR, mdName)}`);
       }
 
       // Download attachments — abort clip if any file fails

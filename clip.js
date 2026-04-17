@@ -47,27 +47,33 @@ async function loadProjects() {
 function renderProjectsTable() {
   const tbody = document.getElementById('projects-tbody');
   if (!projects.length) {
-    tbody.innerHTML = '<tr><td colspan="3" style="color:var(--muted);padding:8px">No projects yet.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="color:var(--muted);padding:8px">No projects yet.</td></tr>';
     return;
   }
   tbody.innerHTML = projects.map(p => `
     <tr data-id="${p.id}">
       <td>${escHtml(p.name)}</td>
+      <td class="folder-name">${escHtml(p.base_path || '(default)')}</td>
       <td class="folder-name">${escHtml(p.folder_name)}</td>
+      <td class="folder-name">${escHtml(p.subfolder || 'New_Files')}</td>
       <td><button class="btn btn-danger" onclick="deleteProject('${p.id}')">Remove</button></td>
     </tr>
   `).join('');
 }
 
 async function addProject() {
-  const name   = document.getElementById('new-project-name').value.trim();
-  const folder = document.getElementById('new-folder-name').value.trim();
-  if (!name || !folder) return alert('Both fields are required.');
+  const name      = document.getElementById('new-project-name').value.trim();
+  const folder    = document.getElementById('new-folder-name').value.trim();
+  const subfolder = document.getElementById('new-subfolder-name').value.trim() || 'New_Files';
+  const basePath  = document.getElementById('new-base-path').value.trim() || null;
+  if (!name || !folder) return alert('Name and folder are required.');
   if (!db) return alert('Not connected to Supabase.');
-  const { error } = await db.from('projects').insert({ name, folder_name: folder });
+  const { error } = await db.from('projects').insert({ name, folder_name: folder, subfolder, base_path: basePath });
   if (error) { alert('Error: ' + error.message); return; }
   document.getElementById('new-project-name').value = '';
   document.getElementById('new-folder-name').value = '';
+  document.getElementById('new-subfolder-name').value = '';
+  document.getElementById('new-base-path').value = '';
   await loadProjects();
 }
 
