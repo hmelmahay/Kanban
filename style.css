@@ -354,6 +354,35 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   white-space: pre-wrap;
 }
 
+.note-line { margin: 2px 0; }
+
+.note-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 2px 0;
+  cursor: pointer;
+  user-select: none;
+}
+
+.note-check input[type="checkbox"] {
+  margin: 2px 0 0;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.note-check-done span {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+.btn-tiny {
+  font-size: 11px;
+  padding: 2px 8px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
 .task-actions {
   display: flex;
   gap: 4px;

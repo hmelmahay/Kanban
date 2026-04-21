@@ -379,6 +379,14 @@ function renderAll() {
       });
     });
 
+    col.querySelectorAll('.note-checkbox').forEach(cb => {
+      cb.addEventListener('click', e => {
+        e.stopPropagation();
+        toggleChecklistItem(cb.dataset.task, parseInt(cb.dataset.line, 10));
+      });
+      cb.addEventListener('mousedown', e => e.stopPropagation());
+    });
+
     col.querySelectorAll('.move-btn').forEach(btn => {
       btn.addEventListener('click', e => {
         e.stopPropagation();
@@ -411,7 +419,7 @@ function renderTask(t) {
         ${dateBadge}
         ${t.recurring ? `<span class="badge badge-recurring">${recurringLabel(t.recurring)}</span>` : ''}
       </div>
-      ${t.notes ? `<div class="task-notes">${escHtml(t.notes)}</div>` : ''}
+      ${t.notes ? `<div class="task-notes">${renderNotes(t.notes, t.id)}</div>` : ''}
       <div class="task-actions">
         ${idx > 0 ? `<button class="btn btn-icon move-btn" data-id="${t.id}" data-dir="-1" title="Move left">&#8592;</button>` : ''}
         ${idx < STATUSES.length - 1 ? `<button class="btn btn-icon move-btn" data-id="${t.id}" data-dir="1" title="Move right">&#8594;</button>` : ''}
@@ -420,6 +428,35 @@ function renderTask(t) {
       </div>
     </div>
   `;
+}
+
+// ── Checklist in notes ────────────────────────────────────────────────────────
+
+const CHECKLIST_RE = /^(\s*)-\s*\[([ xX])\]\s*(.*)$/;
+
+function renderNotes(notes, taskId) {
+  return notes.split('\n').map((line, idx) => {
+    const m = line.match(CHECKLIST_RE);
+    if (m) {
+      const checked = m[2].trim().toLowerCase() === 'x';
+      return `<label class="note-check${checked ? ' note-check-done' : ''}">
+        <input type="checkbox" class="note-checkbox" data-task="${taskId}" data-line="${idx}" ${checked ? 'checked' : ''} />
+        <span>${escHtml(m[3])}</span>
+      </label>`;
+    }
+    return line.trim() ? `<div class="note-line">${escHtml(line)}</div>` : '';
+  }).join('');
+}
+
+async function toggleChecklistItem(taskId, lineIdx) {
+  const t = tasks.find(t => t.id === taskId);
+  if (!t || !t.notes) return;
+  const lines = t.notes.split('\n');
+  const m = lines[lineIdx]?.match(CHECKLIST_RE);
+  if (!m) return;
+  const checked = m[2].trim().toLowerCase() === 'x';
+  lines[lineIdx] = `${m[1]}- [${checked ? ' ' : 'x'}] ${m[3]}`;
+  await updateTask(taskId, { notes: lines.join('\n') });
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -701,6 +738,19 @@ function closeEditModal() {
   document.getElementById('editModalBackdrop').classList.remove('open');
   editingTaskId = null;
 }
+
+document.getElementById('addChecklistBtn').addEventListener('click', () => {
+  const ta = document.getElementById('editNotes');
+  const insert = '- [ ] ';
+  const val = ta.value;
+  const pos = ta.selectionStart ?? val.length;
+  const needsNL = pos > 0 && val[pos - 1] !== '\n';
+  const prefix = needsNL ? '\n' : '';
+  ta.value = val.slice(0, pos) + prefix + insert + val.slice(pos);
+  const caret = pos + prefix.length + insert.length;
+  ta.focus();
+  ta.setSelectionRange(caret, caret);
+});
 
 document.getElementById('editModalCloseBtn').addEventListener('click', closeEditModal);
 document.getElementById('editCancelBtn').addEventListener('click', closeEditModal);
