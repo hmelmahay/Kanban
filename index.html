@@ -172,8 +172,10 @@
           <input id="editRecurringInterval" type="number" min="2" max="52" value="1" style="width:60px;display:none;margin-top:4px" title="Every N weeks/months" />
         </div>
         <div class="field field-wide">
-          <label for="editNotes">Notes</label>
-          <textarea id="editNotes" rows="4" placeholder="Optional notes"></textarea>
+          <label for="editNotes">Notes
+            <button type="button" id="addChecklistBtn" class="btn btn-outline btn-tiny" title="Insert a checklist step">+ Add step</button>
+          </label>
+          <textarea id="editNotes" rows="4" placeholder="Optional notes. Use &quot;- [ ] step&quot; for a checklist item."></textarea>
         </div>
       </div>
       <div class="form-actions">
