@@ -383,6 +383,42 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   vertical-align: middle;
 }
 
+.checklist-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.checklist-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.checklist-row input[type="checkbox"] {
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.checklist-row .checklist-text {
+  flex: 1;
+  padding: 4px 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 13px;
+}
+
+.checklist-row .checklist-text:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.checklist-row .checklist-remove {
+  flex-shrink: 0;
+}
+
 .task-actions {
   display: flex;
   gap: 4px;
