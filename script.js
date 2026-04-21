@@ -331,8 +331,16 @@ function renderAll() {
     const colTasks = visible
       .filter(t => t.status === status)
       .sort((a, b) => {
-        // To Do and Doing use manual sort_order (drag to reorder)
-        if (status === 'todo' || status === 'doing') {
+        // Doing: primary sort by priority, tie-break by manual sort_order
+        if (status === 'doing') {
+          const P = { Critical: 0, High: 1, Medium: 2, Low: 3 };
+          const pDiff = (P[a.priority] ?? 2) - (P[b.priority] ?? 2);
+          if (pDiff !== 0) return pDiff;
+          return (a.sort_order ?? Number.MAX_SAFE_INTEGER) -
+                 (b.sort_order ?? Number.MAX_SAFE_INTEGER);
+        }
+        // To Do: pure manual sort_order (drag to reorder freely)
+        if (status === 'todo') {
           return (a.sort_order ?? Number.MAX_SAFE_INTEGER) -
                  (b.sort_order ?? Number.MAX_SAFE_INTEGER);
         }
