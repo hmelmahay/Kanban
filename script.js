@@ -448,6 +448,52 @@ function renderNotes(notes, taskId) {
   }).join('');
 }
 
+function parseNotesForEdit(notes) {
+  const items = [];
+  const textLines = [];
+  for (const line of (notes || '').split('\n')) {
+    const m = line.match(CHECKLIST_RE);
+    if (m) items.push({ text: m[3], checked: m[2].trim().toLowerCase() === 'x' });
+    else textLines.push(line);
+  }
+  return { text: textLines.join('\n').replace(/\n+$/, ''), items };
+}
+
+function serializeNotesFromEdit(text, items) {
+  const itemLines = items
+    .filter(it => it.text.trim())
+    .map(it => `- [${it.checked ? 'x' : ' '}] ${it.text.trim()}`);
+  const t = (text || '').trim();
+  if (!itemLines.length) return t;
+  if (!t) return itemLines.join('\n');
+  return t + '\n' + itemLines.join('\n');
+}
+
+function checklistRow(item) {
+  const row = document.createElement('div');
+  row.className = 'checklist-row';
+  row.innerHTML = `
+    <input type="checkbox" ${item.checked ? 'checked' : ''} />
+    <input type="text" class="checklist-text" placeholder="Step" />
+    <button type="button" class="btn btn-icon-danger checklist-remove" title="Remove">&#x2715;</button>
+  `;
+  row.querySelector('.checklist-text').value = item.text;
+  return row;
+}
+
+function renderChecklistEditor(items) {
+  const c = document.getElementById('editChecklist');
+  c.innerHTML = '';
+  items.forEach(item => c.appendChild(checklistRow(item)));
+}
+
+function readChecklistFromEditor() {
+  return [...document.querySelectorAll('#editChecklist .checklist-row')].map(row => ({
+    text: row.querySelector('.checklist-text').value,
+    checked: row.querySelector('input[type=checkbox]').checked,
+  }));
+}
+
 async function toggleChecklistItem(taskId, lineIdx) {
   const t = tasks.find(t => t.id === taskId);
   if (!t || !t.notes) return;
@@ -729,7 +775,9 @@ function openEditModal(id) {
   document.getElementById('editRecurring').value = rUnit;
   document.getElementById('editRecurringInterval').value = rN;
   syncIntervalInput('editRecurring', 'editRecurringInterval');
-  document.getElementById('editNotes').value    = t.notes || '';
+  const parsed = parseNotesForEdit(t.notes);
+  document.getElementById('editNotes').value = parsed.text;
+  renderChecklistEditor(parsed.items);
   document.getElementById('editModalBackdrop').classList.add('open');
   document.getElementById('editTitle').focus();
 }
@@ -740,16 +788,23 @@ function closeEditModal() {
 }
 
 document.getElementById('addChecklistBtn').addEventListener('click', () => {
-  const ta = document.getElementById('editNotes');
-  const insert = '- [ ] ';
-  const val = ta.value;
-  const pos = ta.selectionStart ?? val.length;
-  const needsNL = pos > 0 && val[pos - 1] !== '\n';
-  const prefix = needsNL ? '\n' : '';
-  ta.value = val.slice(0, pos) + prefix + insert + val.slice(pos);
-  const caret = pos + prefix.length + insert.length;
-  ta.focus();
-  ta.setSelectionRange(caret, caret);
+  const c = document.getElementById('editChecklist');
+  const row = checklistRow({ text: '', checked: false });
+  c.appendChild(row);
+  row.querySelector('.checklist-text').focus();
+});
+
+document.getElementById('editChecklist').addEventListener('click', e => {
+  const remove = e.target.closest('.checklist-remove');
+  if (remove) remove.closest('.checklist-row').remove();
+});
+
+document.getElementById('editChecklist').addEventListener('keydown', e => {
+  if (e.key !== 'Enter' || !e.target.classList.contains('checklist-text')) return;
+  e.preventDefault();
+  const row = checklistRow({ text: '', checked: false });
+  e.target.closest('.checklist-row').after(row);
+  row.querySelector('.checklist-text').focus();
 });
 
 document.getElementById('editModalCloseBtn').addEventListener('click', closeEditModal);
@@ -764,13 +819,17 @@ document.getElementById('editSaveBtn').addEventListener('click', async () => {
   if (!title) { document.getElementById('editTitle').focus(); return; }
   const t = tasks.find(t => t.id === editingTaskId);
   const newStatus = document.getElementById('editStatus').value;
+  const notes = serializeNotesFromEdit(
+    document.getElementById('editNotes').value,
+    readChecklistFromEditor()
+  );
   const changes = {
     title,
     priority:  document.getElementById('editPriority').value,
     due_date:  document.getElementById('editDueDate').value || null,
     status:    newStatus,
     recurring: buildRecurringValue('editRecurring', 'editRecurringInterval'),
-    notes:     document.getElementById('editNotes').value.trim(),
+    notes,
   };
   if (t && t.status !== newStatus) {
     changes.sort_order = nextSortOrder(newStatus, t.board_id);
