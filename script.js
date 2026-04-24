@@ -295,6 +295,25 @@ async function deleteTask(id) {
   renderAll();
 }
 
+async function duplicateTask(id) {
+  const t = tasks.find(x => x.id === id);
+  if (!t) return;
+  const copy = {
+    id:         uid(),
+    board_id:   t.board_id,
+    title:      t.title + ' (copy)',
+    priority:   t.priority,
+    due_date:   t.due_date,
+    status:     'todo',
+    recurring:  t.recurring,
+    notes:      t.notes,
+    sort_order: nextSortOrder('todo', t.board_id),
+    created_at: new Date().toISOString(),
+    completed_at: null,
+  };
+  await addTask(copy);
+}
+
 function saveTasks() {
   localStorage.setItem(tasksKey(boardId), JSON.stringify(tasks));
 }
@@ -371,6 +390,13 @@ function renderAll() {
       });
     });
 
+    col.querySelectorAll('.duplicate-task-btn').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        duplicateTask(e.currentTarget.dataset.id);
+      });
+    });
+
     col.querySelectorAll('.note-checkbox').forEach(cb => {
       cb.addEventListener('click', e => {
         e.stopPropagation();
@@ -428,6 +454,7 @@ function renderTask(t) {
         ${idx > 0 ? `<button class="btn btn-icon move-btn" data-id="${t.id}" data-dir="-1" title="Move left">&#8592;</button>` : ''}
         ${idx < STATUSES.length - 1 ? `<button class="btn btn-icon move-btn" data-id="${t.id}" data-dir="1" title="Move right">&#8594;</button>` : ''}
         <button class="btn btn-icon edit-task-btn" data-id="${t.id}" title="Edit">&#9998;</button>
+        <button class="btn btn-icon duplicate-task-btn" data-id="${t.id}" title="Duplicate">&#x2398;</button>
         <button class="btn btn-icon-danger delete-task-btn" data-id="${t.id}" title="Delete">&#x2715;</button>
       </div>
     </div>
