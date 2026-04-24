@@ -64,6 +64,27 @@ async function loadDays() {
   setStatus(`Synced ${data.length} days`);
 }
 
+async function autofillFridays() {
+  // Fill every Friday from 2025-01-01 through today (+90 days lookahead) with 'not_swipe' if no entry exists.
+  const start = new Date(2025, 0, 1);
+  const end = new Date();
+  end.setDate(end.getDate() + 90);
+  const rows = [];
+  const d = new Date(start);
+  while (d <= end) {
+    if (d.getDay() === 5) {
+      const iso = isoDate(d);
+      if (!days[iso]) rows.push({ day: iso, type: 'not_swipe', notes: null });
+    }
+    d.setDate(d.getDate() + 1);
+  }
+  if (!rows.length) return;
+  const { error } = await db.from('badge_days').upsert(rows, { onConflict: 'day', ignoreDuplicates: true });
+  if (error) { console.warn('Friday autofill failed:', error.message); return; }
+  for (const r of rows) days[r.day] = { type: r.type, notes: r.notes };
+  setStatus(`Synced ${Object.keys(days).length} days (autofilled ${rows.length} Fridays)`);
+}
+
 async function upsertDay(date, type, notes) {
   if (!type) {
     const { error } = await db.from('badge_days').delete().eq('day', date);
@@ -304,6 +325,7 @@ async function boot() {
   viewY = today.getFullYear();
   viewM = today.getMonth();
   await loadDays();
+  await autofillFridays();
   render();
 }
 
