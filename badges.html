@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Badge Tracker</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="badges.css" />
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="topbar-left">
+      <h1>Badge Tracker</h1>
+      <p class="subtitle" id="syncStatus">Stay off the report</p>
+    </div>
+    <div class="topbar-right">
+      <a href="index.html" class="btn btn-outline">Kanban</a>
+      <a href="clip.html" class="btn btn-outline">Clip Board</a>
+      <button id="signOutBtn" class="btn btn-outline">Sign Out</button>
+    </div>
+  </header>
+
+  <main id="app" class="badge-main">
+
+    <section class="hero">
+      <div class="hero-left">
+        <div class="hero-date" id="heroDate">—</div>
+        <div class="hero-status" id="heroStatus">Loading…</div>
+      </div>
+      <div class="hero-actions">
+        <button id="swipeInBtn" class="btn btn-primary btn-big">Badge In Today</button>
+        <button id="markTodayBtn" class="btn btn-outline">Mark today as…</button>
+      </div>
+    </section>
+
+    <section class="tiles">
+      <div class="tile" id="tileQuarter">
+        <div class="tile-label">This Quarter (<span id="qLabel">Q?</span>)</div>
+        <div class="tile-value"><span id="qCount">0</span> / 33</div>
+        <div class="tile-sub" id="qSub">—</div>
+        <div class="tile-bar"><div class="tile-bar-fill" id="qBar"></div></div>
+      </div>
+      <div class="tile">
+        <div class="tile-label">This Month</div>
+        <div class="tile-value"><span id="mCount">0</span></div>
+        <div class="tile-sub" id="mSub">—</div>
+      </div>
+      <div class="tile">
+        <div class="tile-label">PTO used (<span id="ptoYear">?</span>)</div>
+        <div class="tile-value"><span id="ptoUsed">0</span> / 20</div>
+        <div class="tile-sub" id="ptoSub">—</div>
+      </div>
+      <div class="tile">
+        <div class="tile-label">Flex used</div>
+        <div class="tile-value"><span id="flexUsed">0</span> / 8</div>
+        <div class="tile-sub" id="flexSub">—</div>
+      </div>
+      <div class="tile">
+        <div class="tile-label">Float used (<span id="floatYear">?</span>)</div>
+        <div class="tile-value"><span id="floatUsed">0</span> / 3</div>
+        <div class="tile-sub" id="floatSub">—</div>
+      </div>
+    </section>
+
+    <section class="cal-section">
+      <div class="cal-header">
+        <button id="calPrev" class="btn btn-outline">‹</button>
+        <div class="cal-title" id="calTitle">—</div>
+        <button id="calNext" class="btn btn-outline">›</button>
+      </div>
+      <div class="cal-legend">
+        <span class="lg sw">Swipe</span>
+        <span class="lg ns">No swipe</span>
+        <span class="lg pto">PTO</span>
+        <span class="lg flex">Flex</span>
+        <span class="lg float">Float</span>
+        <span class="lg hol">Holiday</span>
+        <span class="lg off">Off</span>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+    </section>
+
+    <section class="report">
+      <h3>Recent entries</h3>
+      <div id="recentList" class="recent-list">—</div>
+    </section>
+  </main>
+
+  <!-- Day editor modal -->
+  <div id="dayModal" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-title" id="dayModalTitle">Day</div>
+      <div class="modal-row">
+        <label>Type</label>
+        <select id="dayType">
+          <option value="">— clear —</option>
+          <option value="swipe">Swipe (in office)</option>
+          <option value="not_swipe">No swipe (remote)</option>
+          <option value="pto">PTO</option>
+          <option value="flex">Flex</option>
+          <option value="float">Floating Holiday</option>
+          <option value="holiday">Company Holiday</option>
+          <option value="off">Off (weekend/other)</option>
+        </select>
+      </div>
+      <div class="modal-row">
+        <label>Notes</label>
+        <input id="dayNotes" type="text" placeholder="optional" />
+      </div>
+      <div class="modal-actions">
+        <button id="daySaveBtn" class="btn btn-primary">Save</button>
+        <button id="dayCancelBtn" class="btn btn-outline">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Login -->
+  <div id="loginOverlay">
+    <div id="loginCard">
+      <h2>Badge Tracker</h2>
+      <p id="loginError" class="login-error" style="display:none"></p>
+      <div class="login-field">
+        <label for="loginEmail">Email</label>
+        <input id="loginEmail" type="email" autocomplete="email" placeholder="you@example.com" />
+      </div>
+      <div class="login-field">
+        <label for="loginPassword">Password</label>
+        <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Password" />
+      </div>
+      <button id="loginBtn" class="btn btn-primary" style="width:100%">Sign In</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="badges.js"></script>
+</body>
+</html>
