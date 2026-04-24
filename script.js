@@ -632,48 +632,6 @@ document.getElementById('toggleFormBtn').addEventListener('click', () => {
   document.getElementById('toggleFormBtn').textContent = formVisible ? 'Hide Form' : 'Show Form';
 });
 
-document.getElementById('clearTasksBtn').addEventListener('click', async () => {
-  if (tasks.length === 0) return;
-  if (!confirm('Delete all tasks on this board?')) return;
-  if (db) {
-    await db.from('tasks').delete().eq('board_id', boardId);
-  }
-  tasks = [];
-  if (!db) saveTasks();
-  renderAll();
-});
-
-// ── Export / Import ───────────────────────────────────────────────────────────
-
-document.getElementById('exportBtn').addEventListener('click', () => {
-  const board = boards.find(b => b.id === boardId);
-  const payload = { board: board?.name || 'Board', tasks };
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `kanban-${(board?.name || 'board').replace(/\s+/g, '-').toLowerCase()}.json`;
-  a.click();
-  URL.revokeObjectURL(a.href);
-});
-
-document.getElementById('importInput').addEventListener('change', async e => {
-  const file = e.target.files[0];
-  if (!file) return;
-  try {
-    const text = await file.text();
-    const data = JSON.parse(text);
-    const imported = Array.isArray(data) ? data : data.tasks || [];
-    if (!imported.length) { alert('No tasks found in file.'); return; }
-    if (!confirm(`Import ${imported.length} task(s) into current board?`)) return;
-    for (const t of imported) {
-      await addTask({ ...t, id: uid(), board_id: boardId, created_at: new Date().toISOString() });
-    }
-  } catch {
-    alert('Could not parse file. Make sure it is a valid JSON export.');
-  }
-  e.target.value = '';
-});
-
 // ── Search / Filter ───────────────────────────────────────────────────────────
 
 document.getElementById('searchInput').addEventListener('input', renderAll);
