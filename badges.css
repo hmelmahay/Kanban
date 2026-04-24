@@ -1,11 +1,30 @@
 body { overflow: auto; }
 .badge-main {
-  max-width: 1100px;
+  max-width: 1600px;
   margin: 0 auto;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
+  padding: 16px 24px;
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
+  grid-template-areas:
+    "hero hero"
+    "tiles tiles"
+    "cal recent";
   gap: 16px;
+  align-items: start;
+}
+.hero { grid-area: hero; }
+.tiles { grid-area: tiles; }
+.cal-section { grid-area: cal; }
+.report { grid-area: recent; }
+@media (max-width: 900px) {
+  .badge-main {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "hero"
+      "tiles"
+      "cal"
+      "recent";
+  }
 }
 
 /* Hero */
@@ -96,8 +115,7 @@ body { overflow: auto; }
   padding: 4px 0;
 }
 .cal-cell {
-  aspect-ratio: 1/1;
-  min-height: 56px;
+  min-height: 90px;
   background: var(--surface2);
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -137,7 +155,7 @@ body { overflow: auto; }
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 10px;
-  max-height: 260px;
+  max-height: 720px;
   overflow-y: auto;
   font-size: 13px;
 }
