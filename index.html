@@ -49,6 +49,7 @@
       <input id="taskDueDate" type="date" class="form-input" />
       <select id="taskStatus" class="form-select">
         <option value="todo">To Do</option>
+        <option value="ondeck">On Deck</option>
         <option value="doing">Doing</option>
         <option value="done">Done</option>
       </select>
@@ -87,6 +88,10 @@
       <div class="stat-value" id="statOpen">0</div>
     </div>
     <div class="stat-card">
+      <div class="stat-label">On Deck</div>
+      <div class="stat-value" id="statOnDeck">0</div>
+    </div>
+    <div class="stat-card">
       <div class="stat-label">Doing</div>
       <div class="stat-value" id="statBlocked">0</div>
     </div>
@@ -104,6 +109,14 @@
         <span class="count" id="count-todo">0</span>
       </div>
       <div class="column-body" id="col-todo"></div>
+    </div>
+
+    <div class="column" data-status="ondeck">
+      <div class="column-header">
+        <span class="column-title">On Deck</span>
+        <span class="count" id="count-ondeck">0</span>
+      </div>
+      <div class="column-body" id="col-ondeck"></div>
     </div>
 
     <div class="column" data-status="doing">
@@ -153,6 +166,7 @@
           <label for="editStatus">Status</label>
           <select id="editStatus">
             <option value="todo">To Do</option>
+            <option value="ondeck">On Deck</option>
             <option value="doing">Doing</option>
             <option value="done">Done</option>
           </select>

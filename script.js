@@ -195,7 +195,8 @@ async function autoMoveTodayTasks() {
   const today = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   const toMove = tasks.filter(t => t.status === 'todo' && t.due_date === today);
   for (const t of toMove) {
-    await updateTask(t.id, { status: 'doing', sort_order: nextSortOrder('doing', t.board_id) });
+    const target = t.recurring ? 'ondeck' : 'doing';
+    await updateTask(t.id, { status: target, sort_order: nextSortOrder(target, t.board_id) });
   }
 }
 
@@ -325,7 +326,8 @@ function saveTasksFor(bid) {
 
 // ── Render ────────────────────────────────────────────────────────────────────
 
-const STATUSES = ['todo', 'doing', 'done'];
+const STATUSES = ['todo', 'ondeck', 'doing', 'done'];
+const REORDERABLE = new Set(['todo', 'ondeck', 'doing']);
 
 function renderAll() {
   const query = document.getElementById('searchInput').value.trim().toLowerCase();
@@ -342,6 +344,7 @@ function renderAll() {
   // Stats
   document.getElementById('statTotal').textContent   = tasks.length;
   document.getElementById('statOpen').textContent    = tasks.filter(t => t.status === 'todo').length;
+  document.getElementById('statOnDeck').textContent  = tasks.filter(t => t.status === 'ondeck').length;
   document.getElementById('statBlocked').textContent = tasks.filter(t => t.status === 'doing').length;
   document.getElementById('statDone').textContent    = tasks.filter(t => t.status === 'done').length;
 
@@ -350,8 +353,8 @@ function renderAll() {
     const colTasks = visible
       .filter(t => t.status === status)
       .sort((a, b) => {
-        // To Do and Doing: manual sort_order (drag to reorder freely)
-        if (status === 'todo' || status === 'doing') {
+        // To Do, On Deck, Doing: manual sort_order (drag to reorder freely)
+        if (REORDERABLE.has(status)) {
           return (a.sort_order ?? Number.MAX_SAFE_INTEGER) -
                  (b.sort_order ?? Number.MAX_SAFE_INTEGER);
         }
@@ -436,7 +439,7 @@ function renderTask(t) {
     ? (t.completed_at ? `<span class="badge badge-done-date">Done ${formatDate(t.completed_at)}</span>` : '')
     : due ? `<span class="badge ${overdue ? 'badge-overdue' : 'badge-date'}">${overdue ? 'Overdue: ' : ''}${due}</span>` : '';
 
-  const reorderable = t.status === 'todo' || t.status === 'doing';
+  const reorderable = REORDERABLE.has(t.status);
 
   return `
     <div class="task" draggable="true" data-id="${t.id}">
@@ -717,7 +720,7 @@ document.querySelectorAll('.column').forEach(col => {
 
     // Show insertion indicator for reorder-enabled columns
     const status = col.dataset.status;
-    if (status === 'todo' || status === 'doing') {
+    if (REORDERABLE.has(status)) {
       const after = getDragAfterElement(body, e.clientY);
       body.querySelectorAll('.task.drop-before').forEach(el => el.classList.remove('drop-before'));
       if (after) {
@@ -751,7 +754,7 @@ document.querySelectorAll('.column').forEach(col => {
     const changes = {};
     if (task.status !== newStatus) changes.status = newStatus;
 
-    if (newStatus === 'todo' || newStatus === 'doing') {
+    if (REORDERABLE.has(newStatus)) {
       const after = getDragAfterElement(body, e.clientY);
       changes.sort_order = computeSortOrder(newStatus, after, draggedId);
     } else if (changes.status) {
