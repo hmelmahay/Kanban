@@ -34,7 +34,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 16px;
+  padding: 4px 16px;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
@@ -63,9 +63,9 @@ body {
 /* ── Board bar ── */
 .board-bar {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
-  padding: 6px 16px;
+  padding: 4px 16px;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
@@ -96,14 +96,14 @@ body {
 .form-bar {
   background: var(--surface);
   border-bottom: 1px solid var(--border);
-  padding: 8px 16px;
+  padding: 4px 16px;
   flex-shrink: 0;
 }
 
 .form-bar-title {
   font-weight: 700;
-  font-size: 13px;
-  margin-bottom: 6px;
+  font-size: 12px;
+  margin-bottom: 2px;
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
