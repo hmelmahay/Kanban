@@ -330,23 +330,11 @@ const STATUSES = ['todo', 'ondeck', 'doing', 'done'];
 const REORDERABLE = new Set(['todo', 'ondeck', 'doing']);
 
 function renderAll() {
-  const query = document.getElementById('searchInput').value.trim().toLowerCase();
   const pFilter = document.getElementById('priorityFilter').value;
 
   const visible = tasks.filter(t => {
-    const matchQ = !query ||
-      t.title.toLowerCase().includes(query) ||
-      (t.notes && t.notes.toLowerCase().includes(query));
-    const matchP = !pFilter || t.priority === pFilter;
-    return matchQ && matchP;
+    return !pFilter || t.priority === pFilter;
   });
-
-  // Stats
-  document.getElementById('statTotal').textContent   = tasks.length;
-  document.getElementById('statOpen').textContent    = tasks.filter(t => t.status === 'todo').length;
-  document.getElementById('statOnDeck').textContent  = tasks.filter(t => t.status === 'ondeck').length;
-  document.getElementById('statBlocked').textContent = tasks.filter(t => t.status === 'doing').length;
-  document.getElementById('statDone').textContent    = tasks.filter(t => t.status === 'done').length;
 
   STATUSES.forEach(status => {
     const col = document.getElementById('col-' + status);
@@ -637,7 +625,6 @@ document.getElementById('toggleFormBtn').addEventListener('click', () => {
 
 // ── Search / Filter ───────────────────────────────────────────────────────────
 
-document.getElementById('searchInput').addEventListener('input', renderAll);
 document.getElementById('priorityFilter').addEventListener('change', renderAll);
 
 // ── Drag & Drop ───────────────────────────────────────────────────────────────

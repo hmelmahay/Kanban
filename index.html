@@ -29,6 +29,13 @@
       <select id="boardSelect"></select>
     </div>
     <div class="board-actions">
+      <select id="priorityFilter" class="form-select">
+        <option value="">All Priorities</option>
+        <option value="Critical">Critical</option>
+        <option value="High">High</option>
+        <option value="Medium">Medium</option>
+        <option value="Low">Low</option>
+      </select>
       <button id="newBoardBtn" class="btn btn-primary">New Board</button>
       <button id="renameBoardBtn" class="btn btn-outline">Rename</button>
       <button id="deleteBoardBtn" class="btn btn-danger-outline">Delete Board</button>
@@ -65,41 +72,6 @@
     </div>
   </div>
 
-  <!-- Toolbar -->
-  <div class="toolbar">
-    <input id="searchInput" type="text" placeholder="Search tasks" class="form-input search-input" />
-    <select id="priorityFilter" class="form-select">
-      <option value="">All Priorities</option>
-      <option value="Critical">Critical</option>
-      <option value="High">High</option>
-      <option value="Medium">Medium</option>
-      <option value="Low">Low</option>
-    </select>
-  </div>
-
-  <!-- Stats -->
-  <div class="stats-row">
-    <div class="stat-card">
-      <div class="stat-label">Total</div>
-      <div class="stat-value" id="statTotal">0</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">To Do</div>
-      <div class="stat-value" id="statOpen">0</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">On Deck</div>
-      <div class="stat-value" id="statOnDeck">0</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Doing</div>
-      <div class="stat-value" id="statBlocked">0</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Done</div>
-      <div class="stat-value" id="statDone">0</div>
-    </div>
-  </div>
 
   <!-- Board columns -->
   <main class="board" id="board">
