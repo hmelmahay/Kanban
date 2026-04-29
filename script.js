@@ -237,7 +237,7 @@ async function updateTask(id, changes) {
       due_date:   next,
       status:     'todo',
       recurring:  t.recurring,
-      notes:      t.notes,
+      notes:      resetChecklist(t.notes),
       sort_order: nextSortOrder('todo'),
       created_at: new Date().toISOString(),
     });
@@ -514,6 +514,14 @@ function readChecklistFromEditor() {
     text: row.querySelector('.checklist-text').value,
     checked: row.querySelector('input[type=checkbox]').checked,
   }));
+}
+
+function resetChecklist(notes) {
+  if (!notes) return notes;
+  return notes.split('\n').map(line => {
+    const m = line.match(CHECKLIST_RE);
+    return m ? `${m[1]}- [ ] ${m[3]}` : line;
+  }).join('\n');
 }
 
 async function toggleChecklistItem(taskId, lineIdx) {
