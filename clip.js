@@ -119,13 +119,20 @@ function formatSize(bytes) {
 
 // ── Save clip ─────────────────────────────────────────────────────────────────
 async function saveClip() {
-  const projectId = document.getElementById('project-select').value;
-  const title     = document.getElementById('clip-title').value.trim();
-  const content   = document.getElementById('clip-content').value.trim();
+  const projectId  = document.getElementById('project-select').value;
+  const content    = document.getElementById('clip-content').value.trim();
+  const hasFiles   = pendingFiles.length > 0;
 
-  if (!projectId) return showMsg('Please select a project.', 'error');
-  if (!title)     return showMsg('Title is required.', 'error');
-  if (!db)        return showMsg('Not connected to Supabase.', 'error');
+  // Auto-derive title from first filename if no title entered and files are attached
+  let title = document.getElementById('clip-title').value.trim();
+  if (!title && hasFiles) {
+    title = pendingFiles[0].name.replace(/\.[^/.]+$/, ''); // strip extension
+  }
+
+  if (!projectId)          return showMsg('Please select a project.', 'error');
+  if (!title && content)   return showMsg('Title is required when pasting content.', 'error');
+  if (!title && !hasFiles) return showMsg('Add a title, paste content, or attach a file.', 'error');
+  if (!db)                 return showMsg('Not connected to Supabase.', 'error');
 
   const btn = document.getElementById('save-btn');
   btn.disabled = true;
