@@ -115,7 +115,9 @@ async function sync() {
 
       // Resolve destination folder — use project's base_path if set, else global BASE_PATH
       const rootPath = project.base_path || BASE_PATH;
-      const destDir  = path.join(rootPath, project.folder_name, project.subfolder || NEW_FILES_DIR);
+      const destDir  = project.subfolder
+        ? path.join(rootPath, project.folder_name, project.subfolder)
+        : path.join(rootPath, project.folder_name);
       fs.mkdirSync(destDir, { recursive: true });
 
       // Write markdown only if content was pasted
