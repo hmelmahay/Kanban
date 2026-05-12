@@ -113,11 +113,13 @@ async function sync() {
         continue;
       }
 
-      // Resolve destination folder — new vs current file, custom base_path per project
+      // Resolve destination folder
+      // If project has a fixed subfolder, always use it (ignores New/Current toggle)
+      // If no subfolder, respect the toggle: 'current' → Current/, 'new' → folder root
       const rootPath  = project.base_path || BASE_PATH;
-      const subFolder = clip.file_destination === 'current'
-        ? 'Current'
-        : (project.subfolder || null);
+      const subFolder = project.subfolder
+        ? project.subfolder
+        : (clip.file_destination === 'current' ? 'Current' : null);
       const destDir   = subFolder
         ? path.join(rootPath, project.folder_name, subFolder)
         : path.join(rootPath, project.folder_name);
