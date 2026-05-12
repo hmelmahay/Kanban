@@ -227,6 +227,25 @@ label {
   color: #fff;
 }
 
+/* ── Destination buttons ── */
+.dest-btn {
+  padding: 5px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--border2);
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.dest-btn:hover { color: var(--text); border-color: var(--muted); }
+.dest-btn.active {
+  background: var(--success);
+  border-color: var(--success);
+  color: #fff;
+}
+
 /* ── Drop zone ── */
 .drop-zone {
   border: 2px dashed var(--border2);
