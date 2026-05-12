@@ -40,8 +40,10 @@ async function loadProjects() {
   const { data, error } = await db.from('projects').select('*').order('name');
   if (error) { console.error(error); return; }
   projects = data || [];
-  sel.innerHTML = '<option value="">Select project…</option>' +
-    projects.map(p => `<option value="${p.id}">${escHtml(p.name)}</option>`).join('');
+  const defaultId = projects.find(p => p.name === 'WorkPM')?.id || '';
+  sel.innerHTML = projects.map(p =>
+    `<option value="${p.id}" ${p.id === defaultId ? 'selected' : ''}>${escHtml(p.name)}</option>`
+  ).join('');
   renderProjectsTable();
 }
 
