@@ -7,6 +7,7 @@ let db        = null;
 let projects  = [];
 let pendingFiles = [];   // File objects staged for upload
 let activeType = 'slack';
+let activeDest = 'new';  // 'new' | 'current'
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 async function init() {
@@ -147,7 +148,7 @@ async function saveClip() {
     // 2. Insert clip row now that files are safely uploaded
     const { data: clip, error: insertErr } = await db
       .from('clips')
-      .insert({ title, content, clip_type: activeType, project_id: projectId, file_paths: uploadedPaths, synced: false })
+      .insert({ title, content, clip_type: activeType, file_destination: activeDest, project_id: projectId, file_paths: uploadedPaths, synced: false })
       .select()
       .single();
     if (insertErr) throw insertErr;
@@ -233,6 +234,15 @@ function setupEventListeners() {
       document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       activeType = btn.dataset.type;
+    });
+  });
+
+  // Destination buttons (New File / Current File)
+  document.querySelectorAll('.dest-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.dest-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeDest = btn.dataset.dest;
     });
   });
 

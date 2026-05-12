@@ -113,10 +113,13 @@ async function sync() {
         continue;
       }
 
-      // Resolve destination folder — use project's base_path if set, else global BASE_PATH
-      const rootPath = project.base_path || BASE_PATH;
-      const destDir  = project.subfolder
-        ? path.join(rootPath, project.folder_name, project.subfolder)
+      // Resolve destination folder — new vs current file, custom base_path per project
+      const rootPath  = project.base_path || BASE_PATH;
+      const subFolder = clip.file_destination === 'current'
+        ? 'Current'
+        : (project.subfolder || null);
+      const destDir   = subFolder
+        ? path.join(rootPath, project.folder_name, subFolder)
         : path.join(rootPath, project.folder_name);
       fs.mkdirSync(destDir, { recursive: true });
 
