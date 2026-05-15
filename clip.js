@@ -160,7 +160,13 @@ async function saveClip() {
       .insert({ title, content, clip_type: activeType, file_destination: activeDest, project_id: projectId, file_paths: uploadedPaths, synced: false })
       .select()
       .single();
-    if (insertErr) throw insertErr;
+    if (insertErr) {
+      // Clean up orphaned uploads before surfacing the error
+      if (uploadedPaths.length) {
+        await db.storage.from('clip-attachments').remove(uploadedPaths);
+      }
+      throw insertErr;
+    }
 
     // 4. Reset form
     document.getElementById('clip-title').value = '';
