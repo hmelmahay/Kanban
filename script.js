@@ -195,8 +195,7 @@ async function autoMoveTodayTasks() {
   const today = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   const toMove = tasks.filter(t => t.status === 'todo' && t.due_date === today);
   for (const t of toMove) {
-    const target = t.recurring ? 'ondeck' : 'doing';
-    await updateTask(t.id, { status: target, sort_order: nextSortOrder(target, t.board_id) });
+    await updateTask(t.id, { status: 'doing', sort_order: nextSortOrder('doing', t.board_id) });
   }
 }
 

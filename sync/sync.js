@@ -114,15 +114,26 @@ async function sync() {
       }
 
       // Resolve destination folder
-      // If project has a fixed subfolder, always use it (ignores New/Current toggle)
-      // If no subfolder, respect the toggle: 'current' → Current/, 'new' → folder root
+      // 'current' → Current/ at project root (overrides everything else)
+      // 'new'     → {project.subfolder or New_Files}/{TypeFolder} based on clip_type
       const rootPath  = project.base_path || BASE_PATH;
-      const subFolder = project.subfolder
-        ? project.subfolder
-        : (clip.file_destination === 'current' ? 'Current' : null);
-      const destDir   = subFolder
-        ? path.join(rootPath, project.folder_name, subFolder)
-        : path.join(rootPath, project.folder_name);
+      const typeFolderMap = {
+        slack:     'Slack',
+        email:     'Email',
+        teams:     'Teams',
+        meetings:  'Meetings',
+        documents: 'Documents',
+      };
+      let destDir;
+      if (clip.file_destination === 'current') {
+        destDir = path.join(rootPath, project.folder_name, 'Current');
+      } else {
+        const parentSub = project.subfolder || NEW_FILES_DIR;
+        const typeSub   = typeFolderMap[clip.clip_type] || '';
+        destDir = typeSub
+          ? path.join(rootPath, project.folder_name, parentSub, typeSub)
+          : path.join(rootPath, project.folder_name, parentSub);
+      }
       fs.mkdirSync(destDir, { recursive: true });
 
       // Write markdown only if content was pasted
@@ -132,7 +143,7 @@ async function sync() {
         const mdName   = `${date}-${slug}.md`;
         const mdPath   = path.join(destDir, mdName);
         fs.writeFileSync(mdPath, clip.content.trim(), 'utf8');
-        log(`  Wrote: ${path.join(project.folder_name, project.subfolder || NEW_FILES_DIR, mdName)}`);
+        log(`  Wrote: ${path.join(path.relative(rootPath, destDir), mdName)}`);
       }
 
       // Download attachments — abort clip if any file fails
