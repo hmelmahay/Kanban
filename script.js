@@ -91,10 +91,9 @@ async function loadBoards() {
     return;
   }
 
-  renderBoardSelect();
   const savedId = localStorage.getItem('kanban_active_board');
   boardId = boards.find(b => b.id === savedId) ? savedId : boards[0].id;
-  document.getElementById('boardSelect').value = boardId;
+  renderBoardSelect();
   await loadTasks();
 }
 
@@ -112,7 +111,6 @@ async function createBoard(name) {
   }
   boardId = id;
   renderBoardSelect();
-  document.getElementById('boardSelect').value = boardId;
   tasks = [];
   renderAll();
 }
@@ -127,7 +125,6 @@ async function renameBoard(newName) {
     localStorage.setItem(BOARDS_KEY, JSON.stringify(boards));
   }
   renderBoardSelect();
-  document.getElementById('boardSelect').value = boardId;
 }
 
 async function deleteBoard() {
@@ -144,14 +141,17 @@ async function deleteBoard() {
   boards = boards.filter(b => b.id !== boardId);
   boardId = boards[0].id;
   renderBoardSelect();
-  document.getElementById('boardSelect').value = boardId;
   await loadTasks();
 }
 
 function renderBoardSelect() {
-  const sel = document.getElementById('boardSelect');
-  sel.innerHTML = `<option value="__all__">All Boards</option>` +
-    boards.map(b => `<option value="${escAttr(b.id)}">${escHtml(b.name)}</option>`).join('');
+  const tabs = document.getElementById('boardTabs');
+  const activeVal = allBoardsMode ? '__all__' : boardId;
+  const items = [{ id: '__all__', name: 'All Boards' }, ...boards];
+  tabs.innerHTML = items.map(b => {
+    const isActive = b.id === activeVal;
+    return `<button type="button" class="board-tab${isActive ? ' active' : ''}" data-board-id="${escAttr(b.id)}" role="tab" aria-selected="${isActive}">${escHtml(b.name)}</button>`;
+  }).join('');
 }
 
 function setAllBoardsUI() {
@@ -597,15 +597,19 @@ document.getElementById('taskTitle').addEventListener('keydown', e => {
 
 // ── Board controls ────────────────────────────────────────────────────────────
 
-document.getElementById('boardSelect').addEventListener('change', async e => {
-  allBoardsMode = e.target.value === '__all__';
+document.getElementById('boardTabs').addEventListener('click', async e => {
+  const btn = e.target.closest('.board-tab');
+  if (!btn) return;
+  const val = btn.dataset.boardId;
+  allBoardsMode = val === '__all__';
   if (allBoardsMode) {
     await loadAllTasks();
   } else {
-    boardId = e.target.value;
+    boardId = val;
     localStorage.setItem('kanban_active_board', boardId);
     await loadTasks();
   }
+  renderBoardSelect();
   setAllBoardsUI();
 });
 
