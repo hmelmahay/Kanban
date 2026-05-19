@@ -9,7 +9,6 @@ let db       = null;   // Supabase client (null = localStorage mode)
 let boards   = [];     // [{id, name}]
 let tasks    = [];     // current board's tasks
 let boardId  = null;   // active board id
-let formVisible    = true;
 let draggedId      = null;
 let allBoardsMode  = false;
 
@@ -156,8 +155,7 @@ function renderBoardSelect() {
 
 function setAllBoardsUI() {
   const isAll = allBoardsMode;
-  document.getElementById('formBar').style.display = (isAll || !formVisible) ? 'none' : '';
-  document.getElementById('toggleFormBtn').style.display = isAll ? 'none' : '';
+  document.getElementById('formBar').style.display = isAll ? 'none' : '';
   document.getElementById('renameBoardBtn').disabled = isAll;
   document.getElementById('deleteBoardBtn').disabled = isAll;
 }
@@ -632,14 +630,6 @@ document.getElementById('renameBoardBtn').addEventListener('click', async () => 
 });
 
 document.getElementById('deleteBoardBtn').addEventListener('click', deleteBoard);
-
-// ── Header controls ───────────────────────────────────────────────────────────
-
-document.getElementById('toggleFormBtn').addEventListener('click', () => {
-  formVisible = !formVisible;
-  document.getElementById('formBar').style.display = formVisible ? '' : 'none';
-  document.getElementById('toggleFormBtn').textContent = formVisible ? 'Hide Form' : 'Show Form';
-});
 
 // ── Search / Filter ───────────────────────────────────────────────────────────
 
