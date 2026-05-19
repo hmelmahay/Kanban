@@ -408,14 +408,6 @@ function renderAll() {
       btn.addEventListener('mousedown', e => e.stopPropagation());
     });
 
-    col.querySelectorAll('.reorder-btn').forEach(btn => {
-      btn.addEventListener('click', e => {
-        e.stopPropagation();
-        const { id, dir } = e.currentTarget.dataset;
-        reorderTask(id, Number(dir));
-      });
-    });
-
     col.querySelectorAll('.move-btn').forEach(btn => {
       btn.addEventListener('click', e => {
         e.stopPropagation();
@@ -439,7 +431,6 @@ function renderTask(t) {
     ? (t.completed_at ? `<span class="badge badge-done-date">Done ${formatDate(t.completed_at)}</span>` : '')
     : due ? `<span class="badge ${overdue ? 'badge-overdue' : 'badge-date'}">${overdue ? 'Overdue: ' : ''}${due}</span>` : '';
 
-  const reorderable = REORDERABLE.has(t.status);
   const starred = !!t.is_accomplishment;
   const starTitle = starred ? 'Unflag as accomplishment' : 'Flag as accomplishment (include in status report)';
 
@@ -456,8 +447,6 @@ function renderTask(t) {
       ${t.notes ? `<div class="task-notes">${renderNotes(t.notes, t.id)}</div>` : ''}
       <div class="task-actions">
         <button class="star-btn${starred ? ' starred' : ''}" data-id="${t.id}" title="${starTitle}">${starred ? '&#9733;' : '&#9734;'}</button>
-        ${reorderable ? `<button class="btn btn-icon reorder-btn" data-id="${t.id}" data-dir="-1" title="Move up">&#9650;</button>` : ''}
-        ${reorderable ? `<button class="btn btn-icon reorder-btn" data-id="${t.id}" data-dir="1" title="Move down">&#9660;</button>` : ''}
         ${idx > 0 ? `<button class="btn btn-icon move-btn" data-id="${t.id}" data-dir="-1" title="Move left">&#8592;</button>` : ''}
         ${idx < STATUSES.length - 1 ? `<button class="btn btn-icon move-btn" data-id="${t.id}" data-dir="1" title="Move right">&#8594;</button>` : ''}
         <button class="btn btn-icon edit-task-btn" data-id="${t.id}" title="Edit">&#9998;</button>
@@ -657,21 +646,6 @@ document.getElementById('toggleFormBtn').addEventListener('click', () => {
 document.getElementById('priorityFilter').addEventListener('change', renderAll);
 
 // ── Drag & Drop ───────────────────────────────────────────────────────────────
-
-async function reorderTask(id, dir) {
-  const task = tasks.find(t => t.id === id);
-  if (!task) return;
-  const siblings = tasks
-    .filter(t => t.status === task.status && t.board_id === task.board_id)
-    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
-  const curIdx = siblings.findIndex(t => t.id === id);
-  const swapIdx = curIdx + dir;
-  if (swapIdx < 0 || swapIdx >= siblings.length) return;
-  const neighbor = siblings[swapIdx];
-  const tmpOrder = task.sort_order;
-  await updateTask(task.id, { sort_order: neighbor.sort_order });
-  await updateTask(neighbor.id, { sort_order: tmpOrder });
-}
 
 function nextSortOrder(status, bid = boardId) {
   const siblings = tasks.filter(t => t.status === status && t.board_id === bid);
