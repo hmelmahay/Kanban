@@ -238,6 +238,7 @@ async function updateTask(id, changes) {
       recurring:  t.recurring,
       notes:      resetChecklist(t.notes),
       sort_order: nextSortOrder('todo'),
+      is_accomplishment: false,
       created_at: new Date().toISOString(),
     });
     return; // addTask calls renderAll
@@ -308,6 +309,7 @@ async function duplicateTask(id) {
     recurring:  t.recurring,
     notes:      t.notes,
     sort_order: nextSortOrder('todo', t.board_id),
+    is_accomplishment: false,
     created_at: new Date().toISOString(),
     completed_at: null,
   };
@@ -395,6 +397,17 @@ function renderAll() {
       cb.addEventListener('mousedown', e => e.stopPropagation());
     });
 
+    col.querySelectorAll('.star-btn').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const id = e.currentTarget.dataset.id;
+        const task = tasks.find(t => t.id === id);
+        if (!task) return;
+        updateTask(id, { is_accomplishment: !task.is_accomplishment });
+      });
+      btn.addEventListener('mousedown', e => e.stopPropagation());
+    });
+
     col.querySelectorAll('.reorder-btn').forEach(btn => {
       btn.addEventListener('click', e => {
         e.stopPropagation();
@@ -427,18 +440,22 @@ function renderTask(t) {
     : due ? `<span class="badge ${overdue ? 'badge-overdue' : 'badge-date'}">${overdue ? 'Overdue: ' : ''}${due}</span>` : '';
 
   const reorderable = REORDERABLE.has(t.status);
+  const starred = !!t.is_accomplishment;
+  const starTitle = starred ? 'Unflag as accomplishment' : 'Flag as accomplishment (include in status report)';
 
   return `
-    <div class="task" draggable="true" data-id="${t.id}">
+    <div class="task${starred ? ' task-accomplishment' : ''}" draggable="true" data-id="${t.id}">
       <div class="task-title">${escHtml(t.title)}</div>
       <div class="task-meta">
         <span class="badge priority-${t.priority}">${t.priority}</span>
         ${allBoardsMode ? `<span class="badge badge-board">${escHtml(boards.find(b => b.id === t.board_id)?.name || '')}</span>` : ''}
         ${dateBadge}
         ${t.recurring ? `<span class="badge badge-recurring">${recurringLabel(t.recurring)}</span>` : ''}
+        ${starred ? `<span class="badge badge-accomplishment" title="Flagged as accomplishment">&#9733; Accomplishment</span>` : ''}
       </div>
       ${t.notes ? `<div class="task-notes">${renderNotes(t.notes, t.id)}</div>` : ''}
       <div class="task-actions">
+        <button class="star-btn${starred ? ' starred' : ''}" data-id="${t.id}" title="${starTitle}">${starred ? '&#9733;' : '&#9734;'}</button>
         ${reorderable ? `<button class="btn btn-icon reorder-btn" data-id="${t.id}" data-dir="-1" title="Move up">&#9650;</button>` : ''}
         ${reorderable ? `<button class="btn btn-icon reorder-btn" data-id="${t.id}" data-dir="1" title="Move down">&#9660;</button>` : ''}
         ${idx > 0 ? `<button class="btn btn-icon move-btn" data-id="${t.id}" data-dir="-1" title="Move left">&#8592;</button>` : ''}
@@ -576,6 +593,7 @@ document.getElementById('addTaskBtn').addEventListener('click', async () => {
     recurring:  buildRecurringValue('taskRecurring', 'taskRecurringInterval'),
     notes:      document.getElementById('taskNotes').value.trim(),
     sort_order: nextSortOrder(status),
+    is_accomplishment: false,
     created_at: new Date().toISOString(),
   };
 
@@ -780,6 +798,7 @@ function openEditModal(id) {
   document.getElementById('editRecurring').value = rUnit;
   document.getElementById('editRecurringInterval').value = rN;
   syncIntervalInput('editRecurring', 'editRecurringInterval');
+  document.getElementById('editAccomplishment').checked = !!t.is_accomplishment;
   const parsed = parseNotesForEdit(t.notes);
   document.getElementById('editNotes').value = parsed.text;
   renderChecklistEditor(parsed.items);
@@ -835,6 +854,7 @@ document.getElementById('editSaveBtn').addEventListener('click', async () => {
     status:    newStatus,
     recurring: buildRecurringValue('editRecurring', 'editRecurringInterval'),
     notes,
+    is_accomplishment: document.getElementById('editAccomplishment').checked,
   };
   if (t && t.status !== newStatus) {
     changes.sort_order = nextSortOrder(newStatus, t.board_id);
@@ -860,6 +880,177 @@ document.getElementById('clearDoneBtn').addEventListener('click', async () => {
   tasks = tasks.filter(t => !(t.status === 'done' && t.board_id === boardId));
   if (!db) saveTasks();
   renderAll();
+});
+
+// ── Accomplishments Report ────────────────────────────────────────────────────
+
+function isoDate(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function computeReportRange(preset) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const start = new Date(today);
+  const end = new Date(today);
+
+  if (preset === 'week') {
+    const dow = today.getDay(); // 0=Sun
+    start.setDate(today.getDate() - dow);
+  } else if (preset === 'lastweek') {
+    const dow = today.getDay();
+    start.setDate(today.getDate() - dow - 7);
+    end.setDate(today.getDate() - dow - 1);
+  } else if (preset === 'month') {
+    start.setDate(1);
+  } else if (preset === 'lastmonth') {
+    start.setMonth(today.getMonth() - 1, 1);
+    end.setDate(0); // last day of previous month
+  } else if (preset === 'quarter') {
+    const q = Math.floor(today.getMonth() / 3);
+    start.setMonth(q * 3, 1);
+  } else if (preset === 'ytd') {
+    start.setMonth(0, 1);
+  } else if (preset === 'all') {
+    return { start: '', end: '' };
+  } else {
+    return null; // custom — leave inputs alone
+  }
+  return { start: isoDate(start), end: isoDate(end) };
+}
+
+async function loadAccomplishmentTasks(scope) {
+  if (!db) {
+    if (scope === 'current') return tasks.filter(t => t.board_id === boardId);
+    if (allBoardsMode) return tasks;
+    return boards.flatMap(b => JSON.parse(localStorage.getItem(tasksKey(b.id)) || '[]'));
+  }
+  const query = db.from('tasks').select('*').eq('is_accomplishment', true).eq('status', 'done');
+  if (scope === 'current') query.eq('board_id', boardId);
+  const { data, error } = await query.order('completed_at', { ascending: true });
+  if (error) { alert('Error loading accomplishments: ' + error.message); return []; }
+  return data || [];
+}
+
+function stripChecklist(notes) {
+  if (!notes) return '';
+  return notes.split('\n').filter(l => !l.match(CHECKLIST_RE)).join('\n').trim();
+}
+
+function buildReport(items, range, scope) {
+  const { start, end } = range;
+  const inRange = items.filter(t => {
+    if (!t.is_accomplishment || t.status !== 'done') return false;
+    if (!start && !end) return true;
+    const d = t.completed_at;
+    if (!d) return false;
+    if (start && d < start) return false;
+    if (end && d > end) return false;
+    return true;
+  });
+
+  const header = [];
+  header.push('# Accomplishments Report');
+  if (start || end) {
+    header.push(`**Period:** ${start || 'earliest'} → ${end || 'today'}`);
+  } else {
+    header.push('**Period:** All time');
+  }
+  header.push(`**Scope:** ${scope === 'current' ? (boards.find(b => b.id === boardId)?.name || 'Current board') : 'All boards'}`);
+  header.push(`**Total accomplishments:** ${inRange.length}`);
+  header.push('');
+
+  if (inRange.length === 0) {
+    header.push('_No flagged accomplishments in the selected range._');
+    return header.join('\n');
+  }
+
+  const byBoard = new Map();
+  for (const t of inRange) {
+    const name = boards.find(b => b.id === t.board_id)?.name || 'Other';
+    if (!byBoard.has(name)) byBoard.set(name, []);
+    byBoard.get(name).push(t);
+  }
+
+  const sections = [];
+  for (const [boardName, list] of byBoard) {
+    list.sort((a, b) => (a.completed_at || '').localeCompare(b.completed_at || ''));
+    sections.push(`## ${boardName}`);
+    sections.push('');
+    for (const t of list) {
+      const date = t.completed_at ? formatDate(t.completed_at) : '—';
+      sections.push(`- **${t.title}** _(${date}${t.priority ? `, ${t.priority}` : ''})_`);
+      const note = stripChecklist(t.notes);
+      if (note) {
+        for (const line of note.split('\n')) {
+          if (line.trim()) sections.push(`  - ${line.trim()}`);
+        }
+      }
+    }
+    sections.push('');
+  }
+
+  return header.concat(sections).join('\n');
+}
+
+async function refreshReport() {
+  const preset = document.getElementById('reportRangePreset').value;
+  const scope = document.getElementById('reportScope').value;
+  const startInput = document.getElementById('reportStart');
+  const endInput = document.getElementById('reportEnd');
+
+  if (preset !== 'custom') {
+    const r = computeReportRange(preset);
+    if (r) {
+      startInput.value = r.start;
+      endInput.value = r.end;
+    }
+  }
+
+  const range = { start: startInput.value || '', end: endInput.value || '' };
+  const items = await loadAccomplishmentTasks(scope);
+  const md = buildReport(items, range, scope);
+  document.getElementById('reportOutput').value = md;
+}
+
+document.getElementById('accomplishmentsBtn').addEventListener('click', async () => {
+  document.getElementById('reportModalBackdrop').classList.add('open');
+  await refreshReport();
+});
+
+function closeReportModal() {
+  document.getElementById('reportModalBackdrop').classList.remove('open');
+}
+
+document.getElementById('reportModalCloseBtn').addEventListener('click', closeReportModal);
+document.getElementById('reportCloseBtn').addEventListener('click', closeReportModal);
+document.getElementById('reportModalBackdrop').addEventListener('click', e => {
+  if (e.target === document.getElementById('reportModalBackdrop')) closeReportModal();
+});
+
+document.getElementById('reportRangePreset').addEventListener('change', refreshReport);
+document.getElementById('reportScope').addEventListener('change', refreshReport);
+document.getElementById('reportStart').addEventListener('change', () => {
+  document.getElementById('reportRangePreset').value = 'custom';
+  refreshReport();
+});
+document.getElementById('reportEnd').addEventListener('change', () => {
+  document.getElementById('reportRangePreset').value = 'custom';
+  refreshReport();
+});
+
+document.getElementById('reportCopyBtn').addEventListener('click', async () => {
+  const text = document.getElementById('reportOutput').value;
+  try {
+    await navigator.clipboard.writeText(text);
+    const btn = document.getElementById('reportCopyBtn');
+    const orig = btn.textContent;
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = orig; }, 1200);
+  } catch (e) {
+    document.getElementById('reportOutput').select();
+    document.execCommand('copy');
+  }
 });
 
 // ── Init ──────────────────────────────────────────────────────────────────────

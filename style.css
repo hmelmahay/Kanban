@@ -363,6 +363,61 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .badge-recurring  { background: #1a2535; color: #60a5fa; }
 .badge-board      { background: #1e2d40; color: #7dd3fc; }
 .badge-done-date  { background: #1a2d1a; color: #86efac; }
+.badge-accomplishment { background: #3a2d08; color: #fcd34d; border: 1px solid #b8860b; }
+
+.task-accomplishment { border-color: #b8860b; box-shadow: inset 3px 0 0 0 #fcd34d; }
+
+.star-btn {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 14px;
+  line-height: 1;
+}
+.star-btn:hover { color: #fcd34d; }
+.star-btn.starred { color: #fcd34d; }
+
+.checkbox-label {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 8px;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  font-size: 13px !important;
+  color: var(--text) !important;
+  font-weight: 500 !important;
+  cursor: pointer;
+}
+.checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+.modal-wide { max-width: 720px; }
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+#reportOutput {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  white-space: pre;
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  padding: 10px;
+  color: var(--text);
+  resize: vertical;
+}
 
 .task-notes {
   font-size: 12px;
