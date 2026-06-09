@@ -499,10 +499,10 @@ function renderPendingTask(t) {
       </div>
       ${t.notes ? `<div class="task-notes">${renderNotes(t.notes, t.id)}</div>` : ''}
       <div class="approve-row">
-        <span class="approve-label">Approve&nbsp;→</span>
-        <button class="btn btn-approve approve-btn" data-id="${t.id}" data-target="todo" title="Approve into To Do">&#10003; To Do</button>
-        <button class="btn btn-approve approve-btn" data-id="${t.id}" data-target="ondeck" title="Approve into On Deck">&#10003; On Deck</button>
-        <button class="btn btn-approve approve-btn" data-id="${t.id}" data-target="doing" title="Approve into Doing">&#10003; Doing</button>
+        <span class="approve-label">&#10003; Approve&nbsp;→</span>
+        <button class="btn btn-approve approve-btn" data-id="${t.id}" data-target="todo" title="Approve into To Do">To Do</button>
+        <button class="btn btn-approve approve-btn" data-id="${t.id}" data-target="ondeck" title="Approve into On Deck">On Deck</button>
+        <button class="btn btn-approve approve-btn" data-id="${t.id}" data-target="doing" title="Approve into Doing">Doing</button>
         <button class="btn btn-icon edit-task-btn" data-id="${t.id}" title="Edit before approving">&#9998;</button>
         <button class="btn btn-icon-danger delete-task-btn" data-id="${t.id}" title="Remove (do not approve)">&#x2715;</button>
       </div>
