@@ -418,6 +418,96 @@ function renderAll() {
       });
     });
   });
+
+  renderPendingColumn(visible);
+}
+
+// ── Pending Approval column (auto-posted action items await review here) ───────
+const PENDING = 'pending';
+
+function renderPendingColumn(visible) {
+  const col = document.getElementById('col-' + PENDING);
+  if (!col) return;
+
+  const pendingTasks = visible
+    .filter(t => t.status === PENDING)
+    .sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''));
+
+  document.getElementById('count-' + PENDING).textContent =
+    tasks.filter(t => t.status === PENDING).length;
+
+  if (pendingTasks.length === 0) {
+    col.innerHTML = `<div class="empty-state">Nothing awaiting approval</div>`;
+    return;
+  }
+
+  col.innerHTML = pendingTasks.map(renderPendingTask).join('');
+
+  col.querySelectorAll('.task').forEach(el => {
+    el.addEventListener('dragstart', onDragStart);
+    el.addEventListener('dragend', onDragEnd);
+  });
+
+  col.querySelectorAll('.edit-task-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      openEditModal(e.currentTarget.dataset.id);
+    });
+  });
+
+  col.querySelectorAll('.delete-task-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      deleteTask(e.currentTarget.dataset.id);
+    });
+  });
+
+  col.querySelectorAll('.note-checkbox').forEach(cb => {
+    cb.addEventListener('click', e => {
+      e.stopPropagation();
+      toggleChecklistItem(cb.dataset.task, parseInt(cb.dataset.line, 10));
+    });
+    cb.addEventListener('mousedown', e => e.stopPropagation());
+  });
+
+  col.querySelectorAll('.approve-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const { id, target } = e.currentTarget.dataset;
+      const task = tasks.find(t => t.id === id);
+      if (!task) return;
+      updateTask(id, { status: target, sort_order: nextSortOrder(target, task.board_id) });
+    });
+  });
+}
+
+function renderPendingTask(t) {
+  const due = t.due_date ? formatDate(t.due_date) : null;
+  const overdue = isOverdue(t.due_date);
+  const dateBadge = due
+    ? `<span class="badge ${overdue ? 'badge-overdue' : 'badge-date'}">${overdue ? 'Overdue: ' : ''}${due}</span>`
+    : '';
+
+  return `
+    <div class="task" draggable="true" data-id="${t.id}">
+      <div class="task-title">${escHtml(t.title)}</div>
+      <div class="task-meta">
+        <span class="badge priority-${t.priority}">${t.priority}</span>
+        ${allBoardsMode ? `<span class="badge badge-board">${escHtml(boards.find(b => b.id === t.board_id)?.name || '')}</span>` : ''}
+        ${dateBadge}
+        ${t.recurring ? `<span class="badge badge-recurring">${recurringLabel(t.recurring)}</span>` : ''}
+      </div>
+      ${t.notes ? `<div class="task-notes">${renderNotes(t.notes, t.id)}</div>` : ''}
+      <div class="approve-row">
+        <span class="approve-label">Approve&nbsp;→</span>
+        <button class="btn btn-approve approve-btn" data-id="${t.id}" data-target="todo" title="Approve into To Do">&#10003; To Do</button>
+        <button class="btn btn-approve approve-btn" data-id="${t.id}" data-target="ondeck" title="Approve into On Deck">&#10003; On Deck</button>
+        <button class="btn btn-approve approve-btn" data-id="${t.id}" data-target="doing" title="Approve into Doing">&#10003; Doing</button>
+        <button class="btn btn-icon edit-task-btn" data-id="${t.id}" title="Edit before approving">&#9998;</button>
+        <button class="btn btn-icon-danger delete-task-btn" data-id="${t.id}" title="Remove (do not approve)">&#x2715;</button>
+      </div>
+    </div>
+  `;
 }
 
 function renderTask(t) {

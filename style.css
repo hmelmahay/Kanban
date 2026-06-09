@@ -247,11 +247,42 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .board {
   flex: 1;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 10px;
   padding: 10px 16px 12px;
   overflow: hidden;
   min-height: 0;
+}
+
+/* ── Pending Approval column ── */
+.column-pending { border-color: #b45309; }
+.column-pending .column-header {
+  background: #2d2008;
+  border-bottom-color: #b45309;
+}
+.column-pending .column-title { color: #fbbf24; }
+
+.approve-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+.btn-approve {
+  background: #14532d;
+  color: #86efac;
+  border-color: #166534;
+  padding: 4px 8px;
+  font-size: 11px;
+}
+.btn-approve:hover { background: #166534; }
+.approve-label {
+  margin-right: auto;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fbbf24;
 }
 
 /* ── Columns ── */
