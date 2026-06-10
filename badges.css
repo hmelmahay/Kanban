@@ -1,6 +1,6 @@
 body { overflow: auto; }
 .badge-main {
-  max-width: 1600px;
+  max-width: 1900px;
   margin: 0 auto;
   padding: 16px 24px;
   display: grid;
@@ -46,7 +46,7 @@ body { overflow: auto; }
 /* Tiles */
 .tiles {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 12px;
 }
 .tile {
