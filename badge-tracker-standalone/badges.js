@@ -1,13 +1,13 @@
-// ── Supabase config ───────────────────────────────────────────────────────────
-const SUPABASE_URL = 'https://sztatmknjyzzyzngvpff.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_GvPXZ8AVgix3aZ2UDS0YRQ_ktlLvMtB';
+// Badge Tracker — standalone local version.
+// All data is saved to your browser's localStorage. No account, no internet.
 
-// Allotments
+// ── Personal allotments (edit these to match your own) ───────────────────────
 const QUOTA = { pto: 20, flex: 8, float: 3 };
 const QUARTER_MIN = 33;
 
+const STORAGE_KEY = 'badge_days_v1';
+
 // ── State ────────────────────────────────────────────────────────────────────
-let db = null;
 let days = {};          // { 'YYYY-MM-DD': {type, notes} }
 let viewY, viewM;       // calendar view year/month (0-indexed month)
 let editingDate = null;
@@ -18,83 +18,48 @@ const isoDate = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDat
 const parseISO = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
 const setStatus = msg => { $('syncStatus').textContent = msg; };
 
-// ── Auth ─────────────────────────────────────────────────────────────────────
-function showApp() { $('loginOverlay').classList.add('hidden'); }
-function showLogin(msg) {
-  $('loginOverlay').classList.remove('hidden');
-  const err = $('loginError');
-  if (msg) { err.textContent = msg; err.style.display = 'block'; }
-  else { err.style.display = 'none'; }
-}
-
-$('loginBtn').addEventListener('click', async () => {
-  const btn = $('loginBtn');
-  const email = $('loginEmail').value.trim();
-  const password = $('loginPassword').value;
-  if (!email || !password) { showLogin('Enter email and password.'); return; }
-  btn.disabled = true; btn.textContent = 'Signing in…';
-  const { error } = await db.auth.signInWithPassword({ email, password });
-  btn.disabled = false; btn.textContent = 'Sign In';
-  if (error) { showLogin(error.message); return; }
-  showApp();
-  await boot();
-});
-$('loginPassword').addEventListener('keydown', e => { if (e.key === 'Enter') $('loginBtn').click(); });
-$('signOutBtn').addEventListener('click', async () => { await db.auth.signOut(); showLogin(); });
-
-async function initSupabase() {
-  try {
-    db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    const { data: { session } } = await db.auth.getSession();
-    if (!session) { showLogin(); return false; }
-    showApp();
-    return true;
-  } catch (e) {
-    setStatus('Supabase unavailable');
-    return false;
-  }
-}
-
 // ── Data ─────────────────────────────────────────────────────────────────────
-async function loadDays() {
-  const { data, error } = await db.from('badge_days').select('day, type, notes').order('day');
-  if (error) { setStatus('Load error: ' + error.message); return; }
-  days = {};
-  for (const r of data) days[r.day] = { type: r.type, notes: r.notes };
-  setStatus(`Synced ${data.length} days`);
+function loadDays() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    days = raw ? JSON.parse(raw) : {};
+  } catch {
+    days = {};
+  }
+  setStatus(`${Object.keys(days).length} days tracked`);
 }
 
-async function autofillFridays() {
+function saveDays() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(days));
+}
+
+function autofillFridays() {
   // Fill every Friday from 2025-01-01 through today (+90 days lookahead) with 'not_swipe' if no entry exists.
   const start = new Date(2025, 0, 1);
   const end = new Date();
   end.setDate(end.getDate() + 90);
-  const rows = [];
+  let filled = 0;
   const d = new Date(start);
   while (d <= end) {
     if (d.getDay() === 5) {
       const iso = isoDate(d);
-      if (!days[iso]) rows.push({ day: iso, type: 'not_swipe', notes: null });
+      if (!days[iso]) { days[iso] = { type: 'not_swipe', notes: null }; filled++; }
     }
     d.setDate(d.getDate() + 1);
   }
-  if (!rows.length) return;
-  const { error } = await db.from('badge_days').upsert(rows, { onConflict: 'day', ignoreDuplicates: true });
-  if (error) { console.warn('Friday autofill failed:', error.message); return; }
-  for (const r of rows) days[r.day] = { type: r.type, notes: r.notes };
-  setStatus(`Synced ${Object.keys(days).length} days (autofilled ${rows.length} Fridays)`);
+  if (filled) {
+    saveDays();
+    setStatus(`${Object.keys(days).length} days tracked (autofilled ${filled} Fridays)`);
+  }
 }
 
-async function upsertDay(date, type, notes) {
+function upsertDay(date, type, notes) {
   if (!type) {
-    const { error } = await db.from('badge_days').delete().eq('day', date);
-    if (error) { alert('Delete failed: ' + error.message); return; }
     delete days[date];
   } else {
-    const { error } = await db.from('badge_days').upsert({ day: date, type, notes: notes || null });
-    if (error) { alert('Save failed: ' + error.message); return; }
     days[date] = { type, notes: notes || null };
   }
+  saveDays();
   render();
 }
 
@@ -186,7 +151,6 @@ function renderTiles() {
   $('qLabel').textContent = `Q${q} ${year}`;
   $('qCount').textContent = qSwipes;
   const needed = Math.max(0, QUARTER_MIN - qSwipes);
-  // Remaining weekdays in quarter (excluding today past)
   const remainWeekdays = weekdaysBetween(today, end, true);
   $('qSub').textContent = needed === 0
     ? `Target met. ${remainWeekdays} weekdays left in quarter.`
@@ -209,7 +173,7 @@ function renderTiles() {
   const mEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
   const mSwipes = countInRange('swipe', mStart, mEnd);
   $('mCount').textContent = mSwipes;
-  $('mSub').textContent = `≈${(QUARTER_MIN / 3).toFixed(1)}/mo pace to hit 33/qtr`;
+  $('mSub').textContent = `≈${(QUARTER_MIN / 3).toFixed(1)}/mo pace to hit ${QUARTER_MIN}/qtr`;
 
   // Month avg days/week (so far)
   const mAvg = avgPerWeekSoFar('swipe', mStart, mEnd);
@@ -319,21 +283,21 @@ function openDayModal(iso) {
   $('dayModal').classList.remove('hidden');
 }
 $('dayCancelBtn').addEventListener('click', () => $('dayModal').classList.add('hidden'));
-$('daySaveBtn').addEventListener('click', async () => {
+$('daySaveBtn').addEventListener('click', () => {
   const t = $('dayType').value;
   const notes = $('dayNotes').value.trim();
-  await upsertDay(editingDate, t, notes);
+  upsertDay(editingDate, t, notes);
   $('dayModal').classList.add('hidden');
 });
 
 // ── Actions ──────────────────────────────────────────────────────────────────
-$('swipeInBtn').addEventListener('click', async () => {
+$('swipeInBtn').addEventListener('click', () => {
   const todayISO = isoDate(new Date());
   const rec = days[todayISO];
   if (rec && rec.type === 'swipe') {
-    await upsertDay(todayISO, null);
+    upsertDay(todayISO, null);
   } else {
-    await upsertDay(todayISO, 'swipe', null);
+    upsertDay(todayISO, 'swipe', null);
   }
 });
 $('markTodayBtn').addEventListener('click', () => openDayModal(isoDate(new Date())));
@@ -341,16 +305,13 @@ $('calPrev').addEventListener('click', () => { viewM--; if (viewM < 0) { viewM =
 $('calNext').addEventListener('click', () => { viewM++; if (viewM > 11) { viewM = 0; viewY++; } renderCalendar(); });
 
 // ── Boot ─────────────────────────────────────────────────────────────────────
-async function boot() {
+function boot() {
   const today = new Date();
   viewY = today.getFullYear();
   viewM = today.getMonth();
-  await loadDays();
-  await autofillFridays();
+  loadDays();
+  autofillFridays();
   render();
 }
 
-(async () => {
-  const ok = await initSupabase();
-  if (ok) await boot();
-})();
+boot();
