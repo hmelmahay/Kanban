@@ -131,6 +131,21 @@ function countInRange(type, start, end) {
   return n;
 }
 
+function avgPerWeekSoFar(type, start, end) {
+  const today = new Date();
+  const effectiveEnd = today < end ? today : end;
+  if (effectiveEnd < start) return 0;
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const daysElapsed = Math.floor((effectiveEnd - start) / msPerDay) + 1;
+  if (daysElapsed <= 0) return 0;
+  return countInRange(type, start, effectiveEnd) / (daysElapsed / 7);
+}
+
+function applyAvgColor(tile, v) {
+  tile.classList.remove('ok', 'bad');
+  tile.classList.add(v >= 2.5 ? 'ok' : 'bad');
+}
+
 // ── Render ───────────────────────────────────────────────────────────────────
 function render() {
   renderHero();
@@ -188,12 +203,22 @@ function renderTiles() {
   else if (needed > remainWeekdays) qTile.classList.add('bad');
   else if (needed > remainWeekdays * 0.7) qTile.classList.add('warn');
 
+  // Quarter avg days/week (so far)
+  const qAvg = avgPerWeekSoFar('swipe', start, end);
+  $('qAvg').textContent = qAvg.toFixed(1);
+  applyAvgColor($('tileQuarterAvg'), qAvg);
+
   // Month count
   const mStart = new Date(today.getFullYear(), today.getMonth(), 1);
   const mEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
   const mSwipes = countInRange('swipe', mStart, mEnd);
   $('mCount').textContent = mSwipes;
   $('mSub').textContent = `≈${(QUARTER_MIN / 3).toFixed(1)}/mo pace to hit 33/qtr`;
+
+  // Month avg days/week (so far)
+  const mAvg = avgPerWeekSoFar('swipe', mStart, mEnd);
+  $('mAvg').textContent = mAvg.toFixed(1);
+  applyAvgColor($('tileMonthAvg'), mAvg);
 
   // PTO (calendar year)
   const yStart = new Date(today.getFullYear(), 0, 1);
