@@ -1,0 +1,320 @@
+// Badge Tracker — standalone local version.
+// All data is saved to your browser's localStorage. No account, no internet.
+
+// ── Personal allotments (edit these to match your own) ───────────────────────
+const QUOTA = { pto: 20, flex: 8, float: 3 };
+const QUARTER_MIN = 33;
+
+const STORAGE_KEY = 'badge_days_v1';
+
+// ── State ────────────────────────────────────────────────────────────────────
+let days = {};          // { 'YYYY-MM-DD': {type, notes} }
+let viewY, viewM;       // calendar view year/month (0-indexed month)
+let editingDate = null;
+
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2, '0');
+const isoDate = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const parseISO = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const setStatus = msg => { $('syncStatus').textContent = msg; };
+
+// ── Data ─────────────────────────────────────────────────────────────────────
+function loadDays() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    days = raw ? JSON.parse(raw) : {};
+  } catch {
+    days = {};
+  }
+  setStatus(`${Object.keys(days).length} days tracked`);
+}
+
+function saveDays() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(days));
+}
+
+function autofillFridays() {
+  // Fill every Friday from 2025-01-01 through today (+90 days lookahead) with 'not_swipe' if no entry exists.
+  const start = new Date(2025, 0, 1);
+  const end = new Date();
+  end.setDate(end.getDate() + 90);
+  let filled = 0;
+  const d = new Date(start);
+  while (d <= end) {
+    if (d.getDay() === 5) {
+      const iso = isoDate(d);
+      if (!days[iso]) { days[iso] = { type: 'not_swipe', notes: null }; filled++; }
+    }
+    d.setDate(d.getDate() + 1);
+  }
+  if (filled) {
+    saveDays();
+    setStatus(`${Object.keys(days).length} days tracked (autofilled ${filled} Fridays)`);
+  }
+}
+
+function upsertDay(date, type, notes) {
+  if (!type) {
+    delete days[date];
+  } else {
+    days[date] = { type, notes: notes || null };
+  }
+  saveDays();
+  render();
+}
+
+// ── Period helpers ───────────────────────────────────────────────────────────
+function quarterOf(date) {
+  const q = Math.floor(date.getMonth() / 3) + 1;
+  return { q, year: date.getFullYear() };
+}
+function quarterRange(year, q) {
+  const start = new Date(year, (q - 1) * 3, 1);
+  const end = new Date(year, q * 3, 0);
+  return { start, end };
+}
+function flexYearOf(date) {
+  // Flex year runs Feb 20 through Feb 19
+  const y = date.getFullYear();
+  const cutoff = new Date(y, 1, 20); // Feb 20 of this year
+  const startYear = date < cutoff ? y - 1 : y;
+  return {
+    startYear,
+    start: new Date(startYear, 1, 20),
+    end: new Date(startYear + 1, 1, 19),
+    label: `${startYear}→${startYear + 1}`
+  };
+}
+
+function countInRange(type, start, end) {
+  let n = 0;
+  for (const [d, rec] of Object.entries(days)) {
+    if (rec.type !== type) continue;
+    const dd = parseISO(d);
+    if (dd >= start && dd <= end) n++;
+  }
+  return n;
+}
+
+function avgPerWeekSoFar(type, start, end) {
+  const today = new Date();
+  const effectiveEnd = today < end ? today : end;
+  if (effectiveEnd < start) return 0;
+  const weekdaysElapsed = weekdaysBetween(start, effectiveEnd);
+  if (weekdaysElapsed <= 0) return 0;
+  return countInRange(type, start, effectiveEnd) / weekdaysElapsed * 5;
+}
+
+function applyAvgColor(tile, v) {
+  tile.classList.remove('ok', 'bad');
+  tile.classList.add(v >= 2.5 ? 'ok' : 'bad');
+}
+
+// ── Render ───────────────────────────────────────────────────────────────────
+function render() {
+  renderHero();
+  renderTiles();
+  renderCalendar();
+  renderRecent();
+}
+
+function renderHero() {
+  const today = new Date();
+  $('heroDate').textContent = today.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  const todayISO = isoDate(today);
+  const rec = days[todayISO];
+  const btn = $('swipeInBtn');
+  if (rec && rec.type === 'swipe') {
+    $('heroStatus').textContent = '✅ Badged in today';
+    btn.textContent = 'Undo badge-in';
+    btn.classList.remove('btn-primary');
+    btn.classList.add('btn-outline');
+  } else if (rec) {
+    $('heroStatus').textContent = `Today logged as: ${labelOf(rec.type)}`;
+    btn.textContent = 'Badge In Today';
+    btn.classList.add('btn-primary');
+    btn.classList.remove('btn-outline');
+  } else {
+    $('heroStatus').textContent = 'Nothing logged yet for today.';
+    btn.textContent = 'Badge In Today';
+    btn.classList.add('btn-primary');
+    btn.classList.remove('btn-outline');
+  }
+}
+
+function labelOf(t) {
+  return { swipe: 'Swipe', not_swipe: 'No swipe', pto: 'PTO', flex: 'Flex', float: 'Float', holiday: 'Holiday', off: 'Off' }[t] || t;
+}
+
+function renderTiles() {
+  const today = new Date();
+  const { q, year } = quarterOf(today);
+  const { start, end } = quarterRange(year, q);
+  const qSwipes = countInRange('swipe', start, end);
+  $('qLabel').textContent = `Q${q} ${year}`;
+  $('qCount').textContent = qSwipes;
+  const needed = Math.max(0, QUARTER_MIN - qSwipes);
+  const remainWeekdays = weekdaysBetween(today, end, true);
+  $('qSub').textContent = needed === 0
+    ? `Target met. ${remainWeekdays} weekdays left in quarter.`
+    : `${needed} more needed · ${remainWeekdays} weekdays left`;
+  const pct = Math.min(100, (qSwipes / QUARTER_MIN) * 100);
+  $('qBar').style.width = pct + '%';
+  const qTile = $('tileQuarter');
+  qTile.classList.remove('ok', 'warn', 'bad');
+  if (qSwipes >= QUARTER_MIN) qTile.classList.add('ok');
+  else if (needed > remainWeekdays) qTile.classList.add('bad');
+  else if (needed > remainWeekdays * 0.7) qTile.classList.add('warn');
+
+  // Quarter avg days/week (so far)
+  const qAvg = avgPerWeekSoFar('swipe', start, end);
+  $('qAvg').textContent = qAvg.toFixed(1);
+  applyAvgColor($('tileQuarterAvg'), qAvg);
+
+  // Month count
+  const mStart = new Date(today.getFullYear(), today.getMonth(), 1);
+  const mEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+  const mSwipes = countInRange('swipe', mStart, mEnd);
+  $('mCount').textContent = mSwipes;
+  $('mSub').textContent = `≈${(QUARTER_MIN / 3).toFixed(1)}/mo pace to hit ${QUARTER_MIN}/qtr`;
+
+  // Month avg days/week (so far)
+  const mAvg = avgPerWeekSoFar('swipe', mStart, mEnd);
+  $('mAvg').textContent = mAvg.toFixed(1);
+  applyAvgColor($('tileMonthAvg'), mAvg);
+
+  // PTO (calendar year)
+  const yStart = new Date(today.getFullYear(), 0, 1);
+  const yEnd = new Date(today.getFullYear(), 11, 31);
+  $('ptoYear').textContent = today.getFullYear();
+  const ptoUsed = countInRange('pto', yStart, yEnd);
+  $('ptoUsed').textContent = ptoUsed;
+  $('ptoSub').textContent = `${QUOTA.pto - ptoUsed} days remaining`;
+
+  // Flex (Feb 20 - Feb 19)
+  const fy = flexYearOf(today);
+  const flexUsed = countInRange('flex', fy.start, fy.end);
+  $('flexUsed').textContent = flexUsed;
+  $('flexSub').textContent = `${fy.label} · ${QUOTA.flex - flexUsed} left`;
+
+  // Float (calendar year)
+  $('floatYear').textContent = today.getFullYear();
+  const floatUsed = countInRange('float', yStart, yEnd);
+  $('floatUsed').textContent = floatUsed;
+  $('floatSub').textContent = `${QUOTA.float - floatUsed} days remaining`;
+}
+
+function weekdaysBetween(from, to, excludeToday = false) {
+  const start = new Date(from);
+  if (excludeToday) start.setDate(start.getDate() + 1);
+  let n = 0;
+  const d = new Date(start);
+  while (d <= to) {
+    const dow = d.getDay();
+    if (dow !== 0 && dow !== 6) n++;
+    d.setDate(d.getDate() + 1);
+  }
+  return n;
+}
+
+function renderCalendar() {
+  const grid = $('calGrid');
+  grid.innerHTML = '';
+  const first = new Date(viewY, viewM, 1);
+  const last = new Date(viewY, viewM + 1, 0);
+  $('calTitle').textContent = first.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+
+  ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].forEach(d => {
+    const el = document.createElement('div');
+    el.className = 'cal-dow';
+    el.textContent = d;
+    grid.appendChild(el);
+  });
+
+  for (let i = 0; i < first.getDay(); i++) {
+    const el = document.createElement('div');
+    el.className = 'cal-cell blank';
+    grid.appendChild(el);
+  }
+
+  const todayISO = isoDate(new Date());
+  for (let day = 1; day <= last.getDate(); day++) {
+    const d = new Date(viewY, viewM, day);
+    const iso = isoDate(d);
+    const rec = days[iso];
+    const cell = document.createElement('div');
+    cell.className = 'cal-cell';
+    if (rec) cell.classList.add('t-' + rec.type);
+    if (iso === todayISO) cell.classList.add('today');
+    if (d.getDay() === 0 || d.getDay() === 6) cell.classList.add('weekend');
+    cell.innerHTML = `<div class="cal-daynum">${day}</div>` + (rec ? `<div class="cal-tag">${labelOf(rec.type)}</div>` : '');
+    if (rec && rec.notes) {
+      const n = document.createElement('div');
+      n.className = 'cal-note';
+      n.textContent = '📝';
+      n.title = rec.notes;
+      cell.appendChild(n);
+    }
+    cell.addEventListener('click', () => openDayModal(iso));
+    grid.appendChild(cell);
+  }
+}
+
+function renderRecent() {
+  const list = $('recentList');
+  const entries = Object.entries(days).sort((a, b) => b[0].localeCompare(a[0])).slice(0, 30);
+  if (!entries.length) { list.textContent = 'No entries yet.'; return; }
+  list.innerHTML = '';
+  for (const [d, rec] of entries) {
+    const row = document.createElement('div');
+    row.className = 'recent-row';
+    row.innerHTML = `<div>${d}</div><div><span class="recent-type t-${rec.type}">${labelOf(rec.type)}</span></div><div>${rec.notes ? rec.notes.replace(/</g, '&lt;') : ''}</div>`;
+    row.style.cursor = 'pointer';
+    row.addEventListener('click', () => openDayModal(d));
+    list.appendChild(row);
+  }
+}
+
+// ── Modal ────────────────────────────────────────────────────────────────────
+function openDayModal(iso) {
+  editingDate = iso;
+  const d = parseISO(iso);
+  $('dayModalTitle').textContent = d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  const rec = days[iso];
+  $('dayType').value = rec ? rec.type : '';
+  $('dayNotes').value = rec && rec.notes ? rec.notes : '';
+  $('dayModal').classList.remove('hidden');
+}
+$('dayCancelBtn').addEventListener('click', () => $('dayModal').classList.add('hidden'));
+$('daySaveBtn').addEventListener('click', () => {
+  const t = $('dayType').value;
+  const notes = $('dayNotes').value.trim();
+  upsertDay(editingDate, t, notes);
+  $('dayModal').classList.add('hidden');
+});
+
+// ── Actions ──────────────────────────────────────────────────────────────────
+$('swipeInBtn').addEventListener('click', () => {
+  const todayISO = isoDate(new Date());
+  const rec = days[todayISO];
+  if (rec && rec.type === 'swipe') {
+    upsertDay(todayISO, null);
+  } else {
+    upsertDay(todayISO, 'swipe', null);
+  }
+});
+$('markTodayBtn').addEventListener('click', () => openDayModal(isoDate(new Date())));
+$('calPrev').addEventListener('click', () => { viewM--; if (viewM < 0) { viewM = 11; viewY--; } renderCalendar(); });
+$('calNext').addEventListener('click', () => { viewM++; if (viewM > 11) { viewM = 0; viewY++; } renderCalendar(); });
+
+// ── Boot ─────────────────────────────────────────────────────────────────────
+function boot() {
+  const today = new Date();
+  viewY = today.getFullYear();
+  viewM = today.getMonth();
+  loadDays();
+  autofillFridays();
+  render();
+}
+
+boot();
