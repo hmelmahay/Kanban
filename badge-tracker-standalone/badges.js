@@ -97,12 +97,9 @@ function countInRange(type, start, end) {
 }
 
 function avgPerWeekSoFar(type, start, end) {
-  const today = new Date();
-  const effectiveEnd = today < end ? today : end;
-  if (effectiveEnd < start) return 0;
-  const weekdaysElapsed = weekdaysBetween(start, effectiveEnd);
-  if (weekdaysElapsed <= 0) return 0;
-  return countInRange(type, start, effectiveEnd) / weekdaysElapsed * 5;
+  const totalWeekdays = weekdaysBetween(start, end);
+  if (totalWeekdays <= 0) return 0;
+  return countInRange(type, start, end) / totalWeekdays * 5;
 }
 
 function applyAvgColor(tile, v) {
