@@ -135,10 +135,9 @@ function avgPerWeekSoFar(type, start, end) {
   const today = new Date();
   const effectiveEnd = today < end ? today : end;
   if (effectiveEnd < start) return 0;
-  const msPerDay = 24 * 60 * 60 * 1000;
-  const daysElapsed = Math.floor((effectiveEnd - start) / msPerDay) + 1;
-  if (daysElapsed <= 0) return 0;
-  return countInRange(type, start, effectiveEnd) / (daysElapsed / 7);
+  const weekdaysElapsed = weekdaysBetween(start, effectiveEnd);
+  if (weekdaysElapsed <= 0) return 0;
+  return countInRange(type, start, effectiveEnd) / weekdaysElapsed * 5;
 }
 
 function applyAvgColor(tile, v) {
