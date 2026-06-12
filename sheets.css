@@ -1,4 +1,8 @@
 /* Smartsheet Exports page */
+/* style.css locks body to 100vh/overflow:hidden for the Kanban board;
+   this page is a normal scrolling document. */
+body { height: auto; min-height: 100vh; overflow: auto; }
+
 .sheets-main {
   max-width: 920px;
   margin: 0 auto;
