@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smartsheet Exports</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="sheets.css" />
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="topbar-left">
+      <h1>Smartsheet Exports</h1>
+      <p class="subtitle" id="syncStatus">Sheets pulled into WorkPM/Current every weekday at 6pm</p>
+    </div>
+    <div class="topbar-right">
+      <a href="index.html" class="btn btn-outline">Kanban</a>
+      <a href="clip.html" class="btn btn-outline">Clip Board</a>
+      <a href="badges.html" class="btn btn-outline">Badge Tracker</a>
+      <button id="signOutBtn" class="btn btn-outline">Sign Out</button>
+    </div>
+  </header>
+
+  <main id="app" class="sheets-main">
+
+    <section class="add-bar">
+      <div class="add-title">Add a sheet to the daily export</div>
+      <div class="add-row">
+        <input id="newSheetId" type="text" inputmode="numeric" placeholder="Smartsheet ID (e.g. 5870550969700228)" class="form-input flex-2" />
+        <input id="newLabel" type="text" placeholder="Filename (optional — blank = use Smartsheet's title)" class="form-input flex-2" />
+        <select id="newDest" class="form-select" title="Which folder the file is saved to">
+          <option value="current">Current (gets updates)</option>
+          <option value="reference">Reference (status only)</option>
+        </select>
+        <button id="addBtn" class="btn btn-primary">Add Sheet</button>
+      </div>
+      <p class="add-hint" id="addHint">The 6pm script saves each sheet as <code>&lt;Filename&gt;.xlsx</code>. <strong>Current</strong> = WorkPM/Current (files Cowork updates with status). <strong>Reference</strong> = WorkPM/Reference (read-only status sources). Leave Filename blank to use the sheet's real Smartsheet title.</p>
+    </section>
+
+    <section class="sheets-table-wrap">
+      <table class="sheets-table">
+        <thead>
+          <tr>
+            <th class="col-on">On</th>
+            <th>Filename</th>
+            <th>Smartsheet ID</th>
+            <th class="col-dest">Folder</th>
+            <th class="col-act"></th>
+          </tr>
+        </thead>
+        <tbody id="sheetsTbody">
+          <tr><td colspan="5" class="empty">Loading…</td></tr>
+        </tbody>
+      </table>
+      <p class="count-line"><span id="enabledCount">0</span> of <span id="totalCount">0</span> sheets active in the daily pull.</p>
+    </section>
+  </main>
+
+  <!-- Login -->
+  <div id="loginOverlay">
+    <div id="loginCard">
+      <h2>Smartsheet Exports</h2>
+      <p id="loginError" class="login-error" style="display:none"></p>
+      <div class="login-field">
+        <label for="loginEmail">Email</label>
+        <input id="loginEmail" type="email" autocomplete="email" placeholder="you@example.com" />
+      </div>
+      <div class="login-field">
+        <label for="loginPassword">Password</label>
+        <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Password" />
+      </div>
+      <button id="loginBtn" class="btn btn-primary" style="width:100%">Sign In</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="sheets.js"></script>
+</body>
+</html>

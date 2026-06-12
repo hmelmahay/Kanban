@@ -18,6 +18,8 @@
       <span id="sync-status" class="sync-dot" title="Checking connection..."></span>
       <a href="index.html" class="btn btn-ghost">Kanban</a>
       <a href="badges.html" class="btn btn-ghost">Badge Tracker</a>
+      <a href="sheets.html" class="btn btn-ghost">Sheets</a>
+      <button id="signOutBtn" class="btn btn-ghost">Sign Out</button>
     </div>
   </div>
 
@@ -120,6 +122,23 @@
         </div>
       </div>
 
+    </div>
+  </div>
+
+  <!-- Login -->
+  <div id="loginOverlay">
+    <div id="loginCard">
+      <h2>Work Clip Board</h2>
+      <p id="loginError" class="login-error" style="display:none"></p>
+      <div class="login-field">
+        <label for="loginEmail">Email</label>
+        <input id="loginEmail" type="email" autocomplete="email" placeholder="you@example.com" />
+      </div>
+      <div class="login-field">
+        <label for="loginPassword">Password</label>
+        <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Password" />
+      </div>
+      <button id="loginBtn" class="btn btn-primary" style="width:100%">Sign In</button>
     </div>
   </div>
 

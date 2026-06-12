@@ -9,10 +9,49 @@ let pendingFiles = [];   // File objects staged for upload
 let activeType = 'slack';
 let activeDest = 'new';  // 'new' | 'current'
 
+// ── Auth ──────────────────────────────────────────────────────────────────────
+function showApp() { document.getElementById('loginOverlay').classList.add('hidden'); }
+function showLogin(msg) {
+  const ov = document.getElementById('loginOverlay');
+  ov.classList.remove('hidden');
+  const err = document.getElementById('loginError');
+  if (msg) { err.textContent = msg; err.style.display = 'block'; }
+  else { err.style.display = 'none'; }
+}
+
+async function startup() {
+  db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  document.getElementById('loginBtn').addEventListener('click', async () => {
+    const btn = document.getElementById('loginBtn');
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    if (!email || !password) { showLogin('Enter email and password.'); return; }
+    btn.disabled = true; btn.textContent = 'Signing in…';
+    const { error } = await db.auth.signInWithPassword({ email, password });
+    btn.disabled = false; btn.textContent = 'Sign In';
+    if (error) { showLogin(error.message); return; }
+    showApp();
+    await init();
+  });
+  document.getElementById('loginPassword').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('loginBtn').click();
+  });
+  document.getElementById('signOutBtn').addEventListener('click', async () => {
+    await db.auth.signOut();
+    showLogin();
+  });
+
+  const { data: { session } } = await db.auth.getSession();
+  if (!session) { showLogin(); return; }
+  showApp();
+  await init();
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 async function init() {
   try {
-    db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    if (!db) db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     const { error } = await db.from('projects').select('id').limit(1);
     if (error) throw error;
     setStatus('online');
@@ -306,4 +345,4 @@ function escHtml(str) {
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', startup);

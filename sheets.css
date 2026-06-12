@@ -1,0 +1,74 @@
+/* Smartsheet Exports page */
+.sheets-main {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 20px 16px 48px;
+}
+
+.add-bar {
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+.add-title { font-weight: 600; margin-bottom: 10px; }
+.add-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.add-row .form-input { flex: 1 1 200px; }
+.add-hint { margin: 10px 0 0; font-size: .82rem; color: var(--muted, #64748b); }
+.add-hint code { background: rgba(127,127,127,.12); padding: 1px 5px; border-radius: 4px; }
+
+.sheets-table-wrap {
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 10px;
+  padding: 6px 10px 10px;
+}
+.sheets-table { width: 100%; border-collapse: collapse; }
+.sheets-table th {
+  text-align: left;
+  font-size: .75rem;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--muted, #64748b);
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--border, #e2e8f0);
+}
+.sheets-table td {
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--border, #eef2f7);
+  vertical-align: middle;
+}
+.sheets-table tr:last-child td { border-bottom: none; }
+.col-on { width: 56px; }
+.col-dest { width: 130px; }
+.col-dest .form-select { padding: 4px 6px; font-size: .85rem; width: 100%; }
+.col-act { width: 96px; text-align: right; }
+.cell-id code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: .85rem;
+  color: var(--text, #1e293b);
+}
+.cell-label .auto { color: var(--muted, #94a3b8); font-style: italic; }
+.row-off { opacity: .5; }
+.empty { color: var(--muted, #64748b); padding: 16px 8px; }
+.count-line { margin: 10px 4px 4px; font-size: .85rem; color: var(--muted, #64748b); }
+
+.btn-tiny { padding: 3px 10px; font-size: .78rem; }
+
+/* Toggle switch */
+.switch { position: relative; display: inline-block; width: 38px; height: 22px; cursor: pointer; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider {
+  position: absolute; inset: 0;
+  background: #cbd5e1; border-radius: 22px;
+  transition: background .15s;
+}
+.slider::before {
+  content: ""; position: absolute;
+  height: 16px; width: 16px; left: 3px; top: 3px;
+  background: #fff; border-radius: 50%;
+  transition: transform .15s;
+}
+.switch input:checked + .slider { background: var(--accent, #2563eb); }
+.switch input:checked + .slider::before { transform: translateX(16px); }

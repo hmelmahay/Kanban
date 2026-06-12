@@ -13,7 +13,9 @@ const https = require('https');
 
 // ── Config ────────────────────────────────────────────────────────────────────
 const SUPABASE_URL  = 'https://sztatmknjyzzyzngvpff.supabase.co';
-const SUPABASE_KEY  = 'sb_publishable_GvPXZ8AVgix3aZ2UDS0YRQ_ktlLvMtB';
+// Service-role key (kept out of this repo) — read from a local file. Required now
+// that the clips/projects tables are locked to authenticated access only.
+const SUPABASE_KEY  = fs.readFileSync('/Users/steve/.config/worksync/service_key', 'utf8').trim();
 const BASE_PATH     = '/users/steve/workpm/projects';
 const NEW_FILES_DIR = 'New_Files';
 
