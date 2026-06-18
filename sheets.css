@@ -28,6 +28,17 @@ body { height: auto; min-height: 100vh; overflow: auto; }
   border-radius: 10px;
   padding: 6px 10px 10px;
 }
+.table-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--border, #e2e8f0);
+}
+.table-head-text { font-weight: 600; font-size: .9rem; }
+.switch.partial .slider { background: var(--accent, #2563eb); opacity: .45; }
+
 .sheets-table { width: 100%; border-collapse: collapse; }
 .sheets-table th {
   text-align: left;
