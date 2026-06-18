@@ -87,6 +87,17 @@ function render() {
   const enabled = sheets.filter(s => s.enabled).length;
   $('enabledCount').textContent = enabled;
   $('totalCount').textContent = sheets.length;
+  renderMaster(enabled);
+}
+
+function renderMaster(enabled) {
+  const total = sheets.length;
+  const sw = $('masterSwitch');
+  const cb = $('masterToggle');
+  cb.disabled = total === 0;
+  // Checked when every sheet is on; "partial" styling when some (but not all) are on.
+  cb.checked = total > 0 && enabled === total;
+  sw.classList.toggle('partial', enabled > 0 && enabled < total);
 }
 
 async function addSheet() {
@@ -128,6 +139,18 @@ async function toggleSheet(id, enabled) {
   render();
 }
 
+async function toggleAll(enabled) {
+  if (!sheets.length) return;
+  const ids = sheets.map(s => s.id);
+  const { error } = await db.from('smartsheet_exports').update({ enabled }).in('id', ids);
+  if (error) { setStatus('Update failed: ' + error.message); await loadSheets(); return; }
+  sheets.forEach(s => { s.enabled = enabled; });
+  setStatus(enabled
+    ? 'All sheets on — every sheet joins the daily pull.'
+    : 'All sheets off — the daily pull is paused for every sheet.');
+  render();
+}
+
 async function changeDest(id, destination) {
   const { error } = await db.from('smartsheet_exports').update({ destination }).eq('id', id);
   if (error) { setStatus('Update failed: ' + error.message); await loadSheets(); return; }
@@ -148,6 +171,7 @@ async function deleteSheet(id) {
 
 // ── Events ────────────────────────────────────────────────────────────────────
 $('addBtn').addEventListener('click', addSheet);
+$('masterToggle').addEventListener('change', e => toggleAll(e.target.checked));
 $('newSheetId').addEventListener('keydown', e => { if (e.key === 'Enter') addSheet(); });
 $('newLabel').addEventListener('keydown', e => { if (e.key === 'Enter') addSheet(); });
 $('sheetsTbody').addEventListener('click', e => {
