@@ -171,6 +171,7 @@ async function loadAllTasks() {
       JSON.parse(localStorage.getItem(tasksKey(b.id)) || '[]')
     );
   }
+  await autoMoveTodayTasks();
   renderAll();
 }
 
@@ -191,7 +192,9 @@ async function loadTasks() {
 async function autoMoveTodayTasks() {
   const d = new Date();
   const today = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  const toMove = tasks.filter(t => t.status === 'todo' && t.due_date === today);
+  const toMove = tasks.filter(t =>
+    (t.status === 'todo' || t.status === 'ondeck') && t.due_date && t.due_date <= today
+  );
   for (const t of toMove) {
     await updateTask(t.id, { status: 'doing', sort_order: nextSortOrder('doing', t.board_id) });
   }
