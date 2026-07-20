@@ -537,6 +537,7 @@ function renderTask(t) {
       </div>
       ${t.notes ? `<div class="task-notes">${renderNotes(t.notes, t.id)}</div>` : ''}
       <div class="task-actions">
+        ${t.created_at ? `<span class="task-created" title="Created ${formatCreated(t.created_at)}">${formatCreated(t.created_at)}</span>` : ''}
         <button class="star-btn${starred ? ' starred' : ''}" data-id="${t.id}" title="${starTitle}">${starred ? '&#9733;' : '&#9734;'}</button>
         ${idx > 0 ? `<button class="btn btn-icon move-btn" data-id="${t.id}" data-dir="-1" title="Move left">&#8592;</button>` : ''}
         ${idx < STATUSES.length - 1 ? `<button class="btn btn-icon move-btn" data-id="${t.id}" data-dir="1" title="Move right">&#8594;</button>` : ''}
@@ -649,6 +650,14 @@ function formatDate(iso) {
   if (!iso) return null;
   const [y, m, d] = iso.split('-');
   return `${m}/${d}/${y}`;
+}
+
+// Compact created-date (M/D/YY) from a full timestamp column.
+function formatCreated(iso) {
+  if (!iso) return '';
+  const [y, m, d] = iso.slice(0, 10).split('-');
+  if (!y || !m || !d) return '';
+  return `${Number(m)}/${Number(d)}/${y.slice(2)}`;
 }
 
 function isOverdue(iso) {
