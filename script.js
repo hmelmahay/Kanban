@@ -1119,9 +1119,46 @@ document.getElementById('reportCopyBtn').addEventListener('click', async () => {
   }
 });
 
+// ── Auto-refresh ──────────────────────────────────────────────────────────────
+// The board only reflects the DB at load time, so tasks added elsewhere — e.g.
+// the action-item extract dropping cards into Pending Approval — don't appear
+// until a manual reload. Poll periodically and on tab focus so the board stays
+// current, but skip while the user is mid-interaction so nothing is yanked out
+// from under them.
+const AUTO_REFRESH_MS = 30000;
+
+function boardBusy() {
+  if (draggedId) return true;                                   // mid drag-and-drop
+  const edit   = document.getElementById('editModalBackdrop');
+  const report = document.getElementById('reportModalBackdrop');
+  if (edit && edit.classList.contains('open')) return true;     // edit modal open
+  if (report && report.classList.contains('open')) return true; // report modal open
+  const ae = document.activeElement;
+  if (ae && ae.closest && ae.closest('.task')) return true;     // editing a card inline
+  return false;
+}
+
+async function autoRefresh() {
+  if (!db) return;              // localStorage mode: no external source to poll
+  if (document.hidden) return;  // don't poll a backgrounded tab
+  if (boardBusy()) return;      // don't disrupt an active interaction
+  try {
+    if (allBoardsMode) await loadAllTasks();
+    else               await loadTasks();
+  } catch (e) {
+    // transient error — next tick will retry
+  }
+}
+
+document.addEventListener('visibilitychange', () => { if (!document.hidden) autoRefresh(); });
+window.addEventListener('focus', autoRefresh);
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 (async () => {
   const authed = await initSupabase();
-  if (authed) await loadBoards();
+  if (authed) {
+    await loadBoards();
+    setInterval(autoRefresh, AUTO_REFRESH_MS);
+  }
 })();
