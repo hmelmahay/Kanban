@@ -6,7 +6,7 @@ const SUPABASE_KEY = 'sb_publishable_GvPXZ8AVgix3aZ2UDS0YRQ_ktlLvMtB';
 let db        = null;
 let projects  = [];
 let pendingFiles = [];   // File objects staged for upload
-let activeType = 'slack';
+let activeType = 'meetings';
 let activeDest = 'new';  // 'new' | 'current'
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
