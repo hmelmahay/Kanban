@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.steve.smartsheet-runner</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/local/bin/node</string>
+    <string>RUNNER_SCRIPT_PATH</string>
+  </array>
+
+  <!-- Check the on-demand queue every 60s (and once at login). -->
+  <key>StartInterval</key>
+  <integer>60</integer>
+
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>StandardOutPath</key>
+  <string>/Users/steve/Library/Logs/smartsheet-runner.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/steve/Library/Logs/smartsheet-runner.log</string>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin</string>
+    <!-- The command that performs the Smartsheet export. Set by install-runner.sh. -->
+    <key>SMARTSHEET_EXPORT_CMD</key>
+    <string>EXPORT_CMD_PLACEHOLDER</string>
+  </dict>
+</dict>
+</plist>
