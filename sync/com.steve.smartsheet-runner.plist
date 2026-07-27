@@ -8,8 +8,12 @@
 
   <key>ProgramArguments</key>
   <array>
-    <string>/usr/local/bin/node</string>
-    <string>RUNNER_SCRIPT_PATH</string>
+    <!-- Use the SAME python interpreter that runs the existing 4:30pm
+         export_plans.py job (check the working launchd job / `which python3`).
+         The poller re-invokes export_plans.py via sys.executable, so this
+         interpreter must be the one that has its dependencies. -->
+    <string>/usr/bin/python3</string>
+    <string>/Users/steve/scripts/run_export_queue.py</string>
   </array>
 
   <!-- Check the on-demand queue every 60s (and once at login). -->
@@ -23,14 +27,5 @@
   <string>/Users/steve/Library/Logs/smartsheet-runner.log</string>
   <key>StandardErrorPath</key>
   <string>/Users/steve/Library/Logs/smartsheet-runner.log</string>
-
-  <key>EnvironmentVariables</key>
-  <dict>
-    <key>PATH</key>
-    <string>/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin</string>
-    <!-- The command that performs the Smartsheet export. Set by install-runner.sh. -->
-    <key>SMARTSHEET_EXPORT_CMD</key>
-    <string>EXPORT_CMD_PLACEHOLDER</string>
-  </dict>
 </dict>
 </plist>
