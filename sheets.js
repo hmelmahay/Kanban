@@ -5,6 +5,8 @@ const SUPABASE_KEY = 'sb_publishable_GvPXZ8AVgix3aZ2UDS0YRQ_ktlLvMtB';
 // ── State ─────────────────────────────────────────────────────────────────────
 let db = null;
 let sheets = [];
+let currentEmail = null;
+let runPollTimer = null;
 
 const $ = id => document.getElementById(id);
 const setStatus = msg => { $('syncStatus').textContent = msg; };
@@ -40,6 +42,7 @@ async function initSupabase() {
     db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     const { data: { session } } = await db.auth.getSession();
     if (!session) { showLogin(); return false; }
+    currentEmail = session.user?.email || null;
     showApp();
     return true;
   } catch (e) {
@@ -169,8 +172,106 @@ async function deleteSheet(id) {
   await loadSheets();
 }
 
-// ── Events ────────────────────────────────────────────────────────────────────
+// ── On-demand run ───────────────────────────────────────────────────────────────
+// The "Run pull now" button queues a request row; the Mac-side poller claims it,
+// runs the export, and writes status/message back, which we surface here.
+const RUN_TABLE = 'smartsheet_sync_requests';
+const fmtTime = ts => ts ? new Date(ts).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
+
+function setRunStatus(msg, cls = '') {
+  const el = $('runStatus');
+  el.textContent = msg;
+  el.className = 'run-status' + (cls ? ' ' + cls : '');
+}
+
+// Reflect one request row's state in the UI. Returns true once the row is terminal.
+function applyRunState(row) {
+  const btn = $('runNowBtn');
+  if (!row) return false;
+  if (row.status === 'pending') { setRunStatus('Queued — waiting for the runner…'); return false; }
+  if (row.status === 'running') { setRunStatus('Running…'); return false; }
+  if (row.status === 'done') {
+    setRunStatus(`✓ Completed ${fmtTime(row.finished_at)}${row.message ? ' — ' + row.message : ''}`, 'ok');
+    btn.disabled = false; btn.textContent = 'Run pull now';
+    return true;
+  }
+  if (row.status === 'error') {
+    setRunStatus(`⚠ ${row.message || 'Run failed'} (${fmtTime(row.finished_at)})`, 'err');
+    btn.disabled = false; btn.textContent = 'Run pull now';
+    return true;
+  }
+  return false;
+}
+
+function stopRunPoll() { if (runPollTimer) { clearInterval(runPollTimer); runPollTimer = null; } }
+
+// Poll a queued request until it finishes (or we give up waiting on an offline runner).
+function pollRun(id) {
+  stopRunPoll();
+  let ticks = 0;
+  const MAX_TICKS = 60; // ~3 min at 3s
+  runPollTimer = setInterval(async () => {
+    ticks++;
+    const { data, error } = await db.from(RUN_TABLE)
+      .select('status, message, finished_at').eq('id', id).single();
+    if (error) return; // transient — try again next tick
+    if (applyRunState(data)) { stopRunPoll(); return; }
+    if (ticks >= MAX_TICKS) {
+      stopRunPoll();
+      setRunStatus('Still queued — the runner may be offline. It will pick this up when it next runs.', 'err');
+      $('runNowBtn').disabled = false; $('runNowBtn').textContent = 'Run pull now';
+    }
+  }, 3000);
+}
+
+async function requestRun() {
+  const btn = $('runNowBtn');
+  btn.disabled = true; btn.textContent = 'Requesting…';
+  setRunStatus('Requesting…');
+
+  // Don't stack duplicates — if a run is already outstanding, just watch it.
+  const { data: outstanding } = await db.from(RUN_TABLE)
+    .select('id, status').in('status', ['pending', 'running'])
+    .order('requested_at', { ascending: false }).limit(1);
+  if (outstanding && outstanding.length) {
+    setRunStatus('A run is already queued — watching it…');
+    pollRun(outstanding[0].id);
+    return;
+  }
+
+  const { data, error } = await db.from(RUN_TABLE)
+    .insert({ status: 'pending', requested_by: currentEmail })
+    .select('id').single();
+  if (error) {
+    setRunStatus('Could not queue the run: ' + error.message, 'err');
+    btn.disabled = false; btn.textContent = 'Run pull now';
+    return;
+  }
+  setRunStatus('Queued — waiting for the runner…');
+  pollRun(data.id);
+}
+
+// On load, show the most recent request's outcome (and resume watching if active).
+async function loadLastRun() {
+  const { data } = await db.from(RUN_TABLE)
+    .select('id, status, message, requested_at, finished_at')
+    .order('requested_at', { ascending: false }).limit(1);
+  if (!data || !data.length) return;
+  const row = data[0];
+  if (row.status === 'pending' || row.status === 'running') {
+    $('runNowBtn').disabled = true; $('runNowBtn').textContent = 'Requesting…';
+    applyRunState(row);
+    pollRun(row.id);
+  } else if (row.status === 'done') {
+    setRunStatus(`Last run: ✓ ${fmtTime(row.finished_at)}${row.message ? ' — ' + row.message : ''}`, 'ok');
+  } else if (row.status === 'error') {
+    setRunStatus(`Last run: ⚠ ${row.message || 'failed'} (${fmtTime(row.finished_at)})`, 'err');
+  }
+}
+
+// ── Events ─────────────────────────────────────────────────────────────────────
 $('addBtn').addEventListener('click', addSheet);
+$('runNowBtn').addEventListener('click', requestRun);
 $('masterToggle').addEventListener('change', e => toggleAll(e.target.checked));
 $('newSheetId').addEventListener('keydown', e => { if (e.key === 'Enter') addSheet(); });
 $('newLabel').addEventListener('keydown', e => { if (e.key === 'Enter') addSheet(); });
@@ -190,6 +291,7 @@ $('sheetsTbody').addEventListener('change', e => {
 // ── Boot ──────────────────────────────────────────────────────────────────────
 async function boot() {
   await loadSheets();
+  await loadLastRun();
 }
 
 (async () => {
