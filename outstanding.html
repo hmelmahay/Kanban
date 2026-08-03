@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Outstanding Items</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="outstanding.css" />
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="topbar-left">
+      <h1>Outstanding Items</h1>
+      <p class="subtitle" id="syncStatus">Everything still open across Steve's builds — refreshed daily at 6:45am</p>
+    </div>
+    <div class="topbar-right">
+      <a href="index.html" class="btn btn-outline">Kanban</a>
+      <a href="clip.html" class="btn btn-outline">Clip Board</a>
+      <a href="badges.html" class="btn btn-outline">Badge Tracker</a>
+      <a href="sheets.html" class="btn btn-outline">Sheets</a>
+      <button id="signOutBtn" class="btn btn-outline">Sign Out</button>
+    </div>
+  </header>
+
+  <main id="app" class="outstanding-main">
+    <div class="report-bar">
+      <div class="report-date" id="reportDate">Loading…</div>
+      <div class="report-actions">
+        <select id="historyPicker" class="form-select" title="View an earlier refresh"></select>
+        <button id="refreshBtn" class="btn btn-outline" title="Re-check for a newer refresh">Reload</button>
+      </div>
+    </div>
+
+    <div class="report-frame-wrap">
+      <iframe id="reportFrame" class="report-frame" sandbox="" title="Outstanding Items dashboard"></iframe>
+      <div id="reportEmpty" class="report-empty hidden">
+        <p>No dashboard has been posted yet.</p>
+        <p class="report-empty-hint">The 6:45am refresh writes one here each morning.</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- Login -->
+  <div id="loginOverlay">
+    <div id="loginCard">
+      <h2>Outstanding Items</h2>
+      <p id="loginError" class="login-error" style="display:none"></p>
+      <div class="login-field">
+        <label for="loginEmail">Email</label>
+        <input id="loginEmail" type="email" autocomplete="email" placeholder="you@example.com" />
+      </div>
+      <div class="login-field">
+        <label for="loginPassword">Password</label>
+        <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Password" />
+      </div>
+      <button id="loginBtn" class="btn btn-primary" style="width:100%">Sign In</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="outstanding.js"></script>
+</body>
+</html>
