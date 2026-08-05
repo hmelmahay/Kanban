@@ -337,10 +337,13 @@ function renderAll() {
   const pFilter = document.getElementById('priorityFilter').value;
   const query = (document.getElementById('searchInput').value || '').trim().toLowerCase();
   const overdueOnly = document.getElementById('overdueOnly').checked;
+  const locationFilter = document.getElementById('locationFilter').value;
 
   const visible = tasks.filter(t => {
     if (pFilter && t.priority !== pFilter) return false;
     if (overdueOnly && !(t.status !== 'done' && isOverdue(t.due_date))) return false;
+    if (locationFilter === 'home' && !t.home_only) return false;
+    if (locationFilter === 'anywhere' && t.home_only) return false;
     if (query) {
       const haystack = `${t.title || ''} ${t.notes || ''}`.toLowerCase();
       if (!haystack.includes(query)) return false;
@@ -368,7 +371,7 @@ function renderAll() {
       tasks.filter(t => t.status === status).length;
 
     if (colTasks.length === 0) {
-      const label = (query || pFilter || overdueOnly) ? 'No matches' : 'No tasks';
+      const label = (query || pFilter || overdueOnly || locationFilter) ? 'No matches' : 'No tasks';
       col.innerHTML = `<div class="empty-state">${label}</div>`;
       return;
     }
@@ -766,6 +769,7 @@ document.getElementById('deleteBoardBtn').addEventListener('click', deleteBoard)
 document.getElementById('priorityFilter').addEventListener('change', renderAll);
 document.getElementById('searchInput').addEventListener('input', renderAll);
 document.getElementById('overdueOnly').addEventListener('change', renderAll);
+document.getElementById('locationFilter').addEventListener('change', renderAll);
 
 // ── Drag & Drop ───────────────────────────────────────────────────────────────
 

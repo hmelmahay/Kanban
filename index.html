@@ -38,6 +38,11 @@
       <label class="overdue-toggle" title="Show only cards whose due date has passed">
         <input type="checkbox" id="overdueOnly" /> Past due
       </label>
+      <select id="locationFilter" class="form-select" title="Filter cards by where they can be done">
+        <option value="">All locations</option>
+        <option value="home">Home only</option>
+        <option value="anywhere">Anywhere (hide home-only)</option>
+      </select>
       <button id="accomplishmentsBtn" class="btn btn-outline" title="Compile flagged Done tasks into a status report">Accomplishments</button>
       <button id="newBoardBtn" class="btn btn-primary">New Board</button>
       <button id="renameBoardBtn" class="btn btn-outline">Rename</button>
