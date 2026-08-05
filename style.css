@@ -109,6 +109,11 @@ body {
   align-items: center;
 }
 
+.board-search {
+  width: 200px;
+  min-width: 120px;
+}
+
 /* ── Form bar ── */
 .form-bar {
   background: var(--surface);

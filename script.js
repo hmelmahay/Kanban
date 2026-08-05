@@ -333,9 +333,15 @@ const REORDERABLE = new Set(['todo', 'ondeck', 'doing']);
 
 function renderAll() {
   const pFilter = document.getElementById('priorityFilter').value;
+  const query = (document.getElementById('searchInput').value || '').trim().toLowerCase();
 
   const visible = tasks.filter(t => {
-    return !pFilter || t.priority === pFilter;
+    if (pFilter && t.priority !== pFilter) return false;
+    if (query) {
+      const haystack = `${t.title || ''} ${t.notes || ''}`.toLowerCase();
+      if (!haystack.includes(query)) return false;
+    }
+    return true;
   });
 
   STATUSES.forEach(status => {
@@ -358,7 +364,8 @@ function renderAll() {
       tasks.filter(t => t.status === status).length;
 
     if (colTasks.length === 0) {
-      col.innerHTML = `<div class="empty-state">No tasks</div>`;
+      const label = (query || pFilter) ? 'No matches' : 'No tasks';
+      col.innerHTML = `<div class="empty-state">${label}</div>`;
       return;
     }
 
@@ -736,6 +743,7 @@ document.getElementById('deleteBoardBtn').addEventListener('click', deleteBoard)
 // ── Search / Filter ───────────────────────────────────────────────────────────
 
 document.getElementById('priorityFilter').addEventListener('change', renderAll);
+document.getElementById('searchInput').addEventListener('input', renderAll);
 
 // ── Drag & Drop ───────────────────────────────────────────────────────────────
 
