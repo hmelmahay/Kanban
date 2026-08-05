@@ -240,6 +240,7 @@ async function updateTask(id, changes) {
       notes:      resetChecklist(t.notes),
       sort_order: nextSortOrder('todo'),
       is_accomplishment: false,
+      home_only:  !!t.home_only,
       created_at: new Date().toISOString(),
     });
     return; // addTask calls renderAll
@@ -311,6 +312,7 @@ async function duplicateTask(id) {
     notes:      t.notes,
     sort_order: nextSortOrder('todo', t.board_id),
     is_accomplishment: false,
+    home_only:  !!t.home_only,
     created_at: new Date().toISOString(),
     completed_at: null,
   };
@@ -414,6 +416,17 @@ function renderAll() {
         const task = tasks.find(t => t.id === id);
         if (!task) return;
         updateTask(id, { is_accomplishment: !task.is_accomplishment });
+      });
+      btn.addEventListener('mousedown', e => e.stopPropagation());
+    });
+
+    col.querySelectorAll('.home-btn').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const id = e.currentTarget.dataset.id;
+        const task = tasks.find(t => t.id === id);
+        if (!task) return;
+        updateTask(id, { home_only: !task.home_only });
       });
       btn.addEventListener('mousedown', e => e.stopPropagation());
     });
@@ -533,6 +546,10 @@ function renderTask(t) {
 
   const starred = !!t.is_accomplishment;
   const starTitle = starred ? 'Unflag as accomplishment' : 'Flag as accomplishment (include in status report)';
+  const homeOnly = !!t.home_only;
+  const homeTitle = homeOnly
+    ? 'Home-only — can only be done at the Mac (click to clear)'
+    : 'Mark as home-only (can only be done at the Mac)';
 
   return `
     <div class="task${starred ? ' task-accomplishment' : ''}" draggable="true" data-id="${t.id}">
@@ -541,12 +558,14 @@ function renderTask(t) {
         <span class="badge priority-${t.priority}">${t.priority}</span>
         ${allBoardsMode ? `<span class="badge badge-board">${escHtml(boards.find(b => b.id === t.board_id)?.name || '')}</span>` : ''}
         ${dateBadge}
+        ${homeOnly ? `<span class="badge badge-home" title="Can only be done at home (Mac)">&#127968; Home</span>` : ''}
         ${t.recurring ? `<span class="badge badge-recurring">${recurringLabel(t.recurring)}</span>` : ''}
         ${starred ? `<span class="badge badge-accomplishment" title="Flagged as accomplishment">&#9733; Accomplishment</span>` : ''}
       </div>
       ${t.notes ? `<div class="task-notes">${renderNotes(t.notes, t.id)}</div>` : ''}
       <div class="task-actions">
         ${t.created_at ? `<span class="task-created" title="Created ${formatCreated(t.created_at)}">${formatCreated(t.created_at)}</span>` : ''}
+        <button class="home-btn${homeOnly ? ' active' : ''}" data-id="${t.id}" title="${homeTitle}">&#127968;</button>
         <button class="star-btn${starred ? ' starred' : ''}" data-id="${t.id}" title="${starTitle}">${starred ? '&#9733;' : '&#9734;'}</button>
         ${idx > 0 ? `<button class="btn btn-icon move-btn" data-id="${t.id}" data-dir="-1" title="Move left">&#8592;</button>` : ''}
         ${idx < STATUSES.length - 1 ? `<button class="btn btn-icon move-btn" data-id="${t.id}" data-dir="1" title="Move right">&#8594;</button>` : ''}
