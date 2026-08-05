@@ -114,6 +114,22 @@ body {
   min-width: 120px;
 }
 
+.overdue-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--muted);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.overdue-toggle input {
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+  accent-color: var(--danger);
+}
+
 /* ── Form bar ── */
 .form-bar {
   background: var(--surface);
