@@ -749,6 +749,10 @@ input[type="date"].field::-webkit-calendar-picker-indicator { filter: invert(1);
   .form-row { flex-wrap: wrap; }
   .topbar { flex-wrap: wrap; }
   .board-bar { flex-wrap: wrap; }
+  /* Let the board toolbar (search, filters, buttons) wrap instead of
+     overflowing horizontally on a phone. */
+  .board-actions { flex-wrap: wrap; }
+  .board-search { flex: 1 1 100%; width: auto; }
 }
 
 /* ── Login overlay ─────────────────────────────────────────────────────────── */
