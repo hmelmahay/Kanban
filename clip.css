@@ -468,3 +468,22 @@ label {
   font-size: .95rem;
 }
 .login-error { color: #dc2626; font-size: .85rem; margin: 0 0 10px; }
+
+/* ── Mobile ─────────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  body { height: auto; min-height: 100vh; overflow: auto; }
+  .topbar { flex-wrap: wrap; }
+  .topbar-right { flex-wrap: wrap; }
+  /* Stack the two-panel app shell into a single scrolling column. */
+  .main { flex-direction: column; overflow: visible; }
+  .panel { overflow: visible; }
+  .form-panel {
+    width: 100%;
+    flex-shrink: 1;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .right-panel { width: 100%; }
+  /* Let the Type / Destination chip rows wrap instead of spilling off-screen. */
+  .type-buttons { flex-wrap: wrap; }
+}

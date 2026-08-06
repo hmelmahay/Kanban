@@ -18,7 +18,9 @@ body { overflow: auto; }
 .report { grid-area: recent; }
 @media (max-width: 900px) {
   .badge-main {
-    grid-template-columns: 1fr;
+    /* minmax(0,1fr) lets the single column shrink below its content's
+       min-width so the grid can't push the page wider than the phone. */
+    grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
       "hero"
       "tiles"
@@ -220,4 +222,12 @@ body { overflow: auto; }
   .hero { flex-direction: column; align-items: stretch; }
   .cal-cell { min-height: 44px; font-size: 10px; padding: 2px 4px; }
   .cal-tag { display: none; }
+}
+
+/* ── Mobile: collapse the 7-across tile row so it doesn't overflow the phone ──── */
+@media (max-width: 768px) {
+  .tiles { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 460px) {
+  .tiles { grid-template-columns: repeat(2, 1fr); }
 }

@@ -753,6 +753,9 @@ input[type="date"].field::-webkit-calendar-picker-indicator { filter: invert(1);
      overflowing horizontally on a phone. */
   .board-actions { flex-wrap: wrap; }
   .board-search { flex: 1 1 100%; width: auto; }
+  .topbar-right { flex-wrap: wrap; }
+  /* Long unbreakable text in a card can't force the column wider than the phone. */
+  .task-title, .task-notes { overflow-wrap: anywhere; }
 }
 
 /* ── Login overlay ─────────────────────────────────────────────────────────── */
