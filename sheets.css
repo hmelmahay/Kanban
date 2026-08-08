@@ -93,12 +93,8 @@ body { height: auto; min-height: 100vh; overflow: auto; }
 .switch input:checked + .slider { background: var(--accent, #2563eb); }
 .switch input:checked + .slider::before { transform: translateX(16px); }
 
-/* ── Mobile ─────────────────────────────────────────────────────────────────── */
-@media (max-width: 768px) {
-  .topbar { flex-wrap: wrap; }
-  .topbar-right { flex-wrap: wrap; }
-  .add-row { flex-wrap: wrap; }
-  .add-row .form-input, .add-row .form-select, .add-row .btn { flex: 1 1 100%; }
-  /* Let the wide table scroll inside its card instead of stretching the page. */
+/* Phone: let the sheets table scroll sideways instead of squishing */
+@media (max-width: 820px) {
   .sheets-table-wrap { overflow-x: auto; }
-}
+  .sheets-table { min-width: 640px; }
+  .add-row .form-input, .add-row .form-select { flex: 1 1 100%; }}

@@ -2,13 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Steve's KanBan Board</title>
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <link rel="icon" type="image/png" href="/icon-512.png" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Kanban" />
+  <meta name="theme-color" content="#0d1117" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -24,6 +26,7 @@
       <a href="badges.html" class="btn btn-outline">Badge Tracker</a>
       <a href="sheets.html" class="btn btn-outline">Sheets</a>
       <a href="outstanding.html" class="btn btn-outline">Outstanding</a>
+      <a href="poker.html" class="btn btn-outline">Poker</a>
       <button id="signOutBtn" class="btn btn-outline">Sign Out</button>
     </div>
   </header>
@@ -57,7 +60,10 @@
 
   <!-- Add Task form -->
   <div class="form-bar" id="formBar">
-    <div class="form-bar-title">Add Task</div>
+    <button type="button" class="form-bar-header" id="formToggle">
+      <span class="form-bar-title">Add Task</span>
+      <span class="form-toggle-icon">&#9662;</span>
+    </button>
     <div class="form-row">
       <input id="taskTitle" type="text" placeholder="Enter a task" class="form-input flex-2" />
       <select id="taskPriority" class="form-select">
@@ -86,6 +92,15 @@
   </div>
 
 
+  <!-- Mobile status tabs -->
+  <nav class="mobile-tabs" id="mobileTabs">
+    <button class="mobile-tab" data-status="pending">&#9203; Pending <span class="tab-count" id="tab-count-pending">0</span></button>
+    <button class="mobile-tab active" data-status="todo">To Do <span class="tab-count" id="tab-count-todo">0</span></button>
+    <button class="mobile-tab" data-status="ondeck">On Deck <span class="tab-count" id="tab-count-ondeck">0</span></button>
+    <button class="mobile-tab" data-status="doing">Doing <span class="tab-count" id="tab-count-doing">0</span></button>
+    <button class="mobile-tab" data-status="done">Done <span class="tab-count" id="tab-count-done">0</span></button>
+  </nav>
+
   <!-- Board columns -->
   <main class="board" id="board">
     <div class="column column-pending" data-status="pending">
@@ -96,7 +111,7 @@
       <div class="column-body" id="col-pending"></div>
     </div>
 
-    <div class="column" data-status="todo">
+    <div class="column mobile-active" data-status="todo">
       <div class="column-header">
         <span class="column-title">To Do</span>
         <span class="count" id="count-todo">0</span>

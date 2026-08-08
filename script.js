@@ -369,6 +369,8 @@ function renderAll() {
       });
     document.getElementById('count-' + status).textContent =
       tasks.filter(t => t.status === status).length;
+    const tabCount = document.getElementById('tab-count-' + status);
+    if (tabCount) tabCount.textContent = tasks.filter(t => t.status === status).length;
 
     if (colTasks.length === 0) {
       const label = (query || pFilter || overdueOnly || locationFilter) ? 'No matches' : 'No tasks';
@@ -463,6 +465,8 @@ function renderPendingColumn(visible) {
 
   document.getElementById('count-' + PENDING).textContent =
     tasks.filter(t => t.status === PENDING).length;
+  const pendingTabCount = document.getElementById('tab-count-' + PENDING);
+  if (pendingTabCount) pendingTabCount.textContent = tasks.filter(t => t.status === PENDING).length;
 
   if (pendingTasks.length === 0) {
     col.innerHTML = `<div class="empty-state">Nothing awaiting approval</div>`;
@@ -763,6 +767,21 @@ document.getElementById('renameBoardBtn').addEventListener('click', async () => 
 });
 
 document.getElementById('deleteBoardBtn').addEventListener('click', deleteBoard);
+
+// ── Mobile status tabs ────────────────────────────────────────────────────────
+
+document.getElementById('mobileTabs').addEventListener('click', e => {
+  const tab = e.target.closest('.mobile-tab');
+  if (!tab) return;
+  document.querySelectorAll('.mobile-tab').forEach(t => t.classList.toggle('active', t === tab));
+  document.querySelectorAll('.column').forEach(c =>
+    c.classList.toggle('mobile-active', c.dataset.status === tab.dataset.status));
+});
+
+// Collapsible "Add Task" form (collapsed by default on mobile)
+document.getElementById('formToggle').addEventListener('click', () => {
+  document.getElementById('formBar').classList.toggle('open');
+});
 
 // ── Search / Filter ───────────────────────────────────────────────────────────
 

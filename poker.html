@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Outstanding Items</title>
+  <title>Online Game</title>
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <link rel="icon" type="image/png" href="/icon-512.png" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Outstanding" />
+  <meta name="apple-mobile-web-app-title" content="Poker" />
   <meta name="theme-color" content="#0d1117" />
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="outstanding.css" />
@@ -18,15 +18,15 @@
 
   <header class="topbar">
     <div class="topbar-left">
-      <h1>Outstanding Items</h1>
-      <p class="subtitle" id="syncStatus">Everything still open across Steve's builds — refreshed daily at 6:45am</p>
+      <h1>Online Game</h1>
+      <p class="subtitle" id="syncStatus">PokerNow player dashboard — refreshed Fridays at 3am</p>
     </div>
     <div class="topbar-right">
       <a href="index.html" class="btn btn-outline">Kanban</a>
       <a href="clip.html" class="btn btn-outline">Clip Board</a>
       <a href="badges.html" class="btn btn-outline">Badge Tracker</a>
       <a href="sheets.html" class="btn btn-outline">Sheets</a>
-      <a href="poker.html" class="btn btn-outline">Poker</a>
+      <a href="outstanding.html" class="btn btn-outline">Outstanding</a>
       <button id="signOutBtn" class="btn btn-outline">Sign Out</button>
     </div>
   </header>
@@ -41,10 +41,10 @@
     </div>
 
     <div class="report-frame-wrap">
-      <iframe id="reportFrame" class="report-frame" sandbox="" title="Outstanding Items dashboard"></iframe>
+      <iframe id="reportFrame" class="report-frame" sandbox="allow-scripts" title="Online Game dashboard"></iframe>
       <div id="reportEmpty" class="report-empty hidden">
         <p>No dashboard has been posted yet.</p>
-        <p class="report-empty-hint">The 6:45am refresh writes one here each morning.</p>
+        <p class="report-empty-hint">The Friday 3am refresh writes one here each week.</p>
       </div>
     </div>
   </main>
@@ -52,7 +52,7 @@
   <!-- Login -->
   <div id="loginOverlay">
     <div id="loginCard">
-      <h2>Outstanding Items</h2>
+      <h2>Online Game</h2>
       <p id="loginError" class="login-error" style="display:none"></p>
       <div class="login-field">
         <label for="loginEmail">Email</label>
@@ -67,6 +67,6 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="outstanding.js"></script>
+  <script src="poker.js"></script>
 </body>
 </html>

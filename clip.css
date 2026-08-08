@@ -439,6 +439,65 @@ label {
 }
 .add-project-row .form-input { flex: 1; }
 
+/* ── Responsive: phone layout ── */
+@media (max-width: 820px) {
+  body {
+    height: auto;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow: auto;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Topbar: title row on top, page links scroll sideways below */
+  .topbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: calc(10px + env(safe-area-inset-top)) 14px 10px;
+  }
+  .topbar-left h1 { font-size: 17px; white-space: nowrap; }
+  .subtitle { font-size: 12px; }
+  .topbar-right {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    min-width: 0;
+  }
+  .topbar-right::-webkit-scrollbar { display: none; }
+  .topbar-right .btn { flex-shrink: 0; }
+
+  /* Panels stack vertically, full width */
+  .main {
+    flex-direction: column;
+    overflow: visible;
+  }
+  .form-panel {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .panel { overflow: visible; padding: 16px 14px; }
+  .section { padding: 16px 14px; }
+
+  /* 16px inputs stop iOS zooming in on focus; bigger touch targets */
+  .form-input, .form-select, .form-textarea { font-size: 16px; padding: 11px 12px; }
+  .form-textarea { min-height: 140px; }
+  .btn { padding: 10px 14px; font-size: 14px; }
+  .btn-sm { padding: 8px 12px; font-size: 13px; }
+  .type-buttons { flex-wrap: wrap; }
+  .type-btn, .dest-btn { padding: 9px 16px; font-size: 14px; }
+  .drop-zone { padding: 20px 12px; }
+
+  /* Projects manager: stack the add row, let the table scroll */
+  .add-project-row { flex-direction: column; align-items: stretch; }
+  .projects-panel { overflow-x: auto; }
+  .projects-table { min-width: 560px; }
+
+  .clips-list { max-height: none; }
+}
+
 /* ── Login overlay ─────────────────────────────────────────────────────────── */
 #loginOverlay {
   position: fixed; inset: 0;

@@ -1,0 +1,7 @@
+sync
+badge-tracker-standalone
+.DS_Store
+*.plist
+*.sql
+*.py
+README.txt

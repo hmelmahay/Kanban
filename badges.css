@@ -218,8 +218,18 @@ body { overflow: auto; }
 }
 .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
 
-@media (max-width: 640px) {
+@media (max-width: 820px) {
+  .badge-main { padding: 12px 14px 32px; }
+  .tiles { grid-template-columns: repeat(2, 1fr); }
   .hero { flex-direction: column; align-items: stretch; }
+  .hero-actions { flex-direction: column; }
+  .btn-big { padding: 14px 20px; }
+  .recent-row { grid-template-columns: 88px 76px 1fr; font-size: 12px; }
+  .modal-card { margin: 16px; min-width: 0; width: 100%; max-width: 420px; }
+  .modal-row select, .modal-row input { font-size: 16px; padding: 11px 12px; }
+  .modal-actions .btn { flex: 1; }
+}
+@media (max-width: 640px) {
   .cal-cell { min-height: 44px; font-size: 10px; padding: 2px 4px; }
   .cal-tag { display: none; }
 }
