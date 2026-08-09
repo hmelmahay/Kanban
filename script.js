@@ -226,19 +226,21 @@ async function updateTask(id, changes) {
   if (t) Object.assign(t, changes);
   if (!db) saveTasksFor(t?.board_id || boardId);
 
-  // Spawn next occurrence when a recurring task is completed
-  if (changes.status === 'done' && t?.recurring && t?.due_date) {
+  // Spawn next occurrence when a recurring task is completed.
+  // parseRecurring gates the check: only a valid frequency counts, so a stray
+  // value like "false" from an automation insert can't trigger a respawn loop.
+  if (changes.status === 'done' && t?.due_date && parseRecurring(t.recurring).unit) {
     const next = nextDueDate(t.due_date, t.recurring);
     await addTask({
       id:         uid(),
-      board_id:   boardId,
+      board_id:   t.board_id,
       title:      t.title,
       priority:   t.priority,
       due_date:   next,
       status:     'todo',
       recurring:  t.recurring,
       notes:      resetChecklist(t.notes),
-      sort_order: nextSortOrder('todo'),
+      sort_order: nextSortOrder('todo', t.board_id),
       is_accomplishment: false,
       home_only:  !!t.home_only,
       created_at: new Date().toISOString(),
@@ -253,7 +255,8 @@ function parseRecurring(val) {
   if (!val) return { unit: '', n: 1 };
   const m = val.match(/^(\d+)-(weekly|monthly)$/);
   if (m) return { unit: m[2], n: parseInt(m[1]) };
-  return { unit: val, n: 1 };
+  // Anything but a known unit is not recurring (guards against bad inserts).
+  return ['daily', 'weekly', 'monthly'].includes(val) ? { unit: val, n: 1 } : { unit: '', n: 1 };
 }
 
 function recurringLabel(val) {
@@ -913,6 +916,9 @@ function openEditModal(id) {
   document.getElementById('editPriority').value = t.priority;
   document.getElementById('editDueDate').value  = t.due_date || '';
   document.getElementById('editStatus').value   = t.status;
+  document.getElementById('editBoard').innerHTML = boards.map(b =>
+    `<option value="${escAttr(b.id)}"${b.id === t.board_id ? ' selected' : ''}>${escHtml(b.name)}</option>`
+  ).join('');
   const { unit: rUnit, n: rN } = parseRecurring(t.recurring || '');
   document.getElementById('editRecurring').value = rUnit;
   document.getElementById('editRecurringInterval').value = rN;
@@ -975,11 +981,23 @@ document.getElementById('editSaveBtn').addEventListener('click', async () => {
     notes,
     is_accomplishment: document.getElementById('editAccomplishment').checked,
   };
-  if (t && t.status !== newStatus) {
+  const newBoardId = document.getElementById('editBoard').value;
+  const oldBoardId = t?.board_id;
+  const boardChanged = t && newBoardId && newBoardId !== oldBoardId;
+  if (boardChanged) {
+    changes.board_id = newBoardId;
+    changes.sort_order = nextSortOrder(newStatus, newBoardId);
+  } else if (t && t.status !== newStatus) {
     changes.sort_order = nextSortOrder(newStatus, t.board_id);
   }
-  await updateTask(editingTaskId, changes);
+  const movedId = editingTaskId;
+  await updateTask(movedId, changes);
+  if (boardChanged) {
+    if (!db) saveTasksFor(oldBoardId); // rewrite the old board's storage without the task
+    if (!allBoardsMode) tasks = tasks.filter(x => x.id !== movedId);
+  }
   closeEditModal();
+  renderAll();
 });
 
 document.addEventListener('keydown', e => {
