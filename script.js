@@ -956,6 +956,14 @@ document.getElementById('editChecklist').addEventListener('keydown', e => {
   row.querySelector('.checklist-text').focus();
 });
 
+// Double-click anywhere on a card opens it for editing (same as the pencil).
+// Interactive children (buttons, checkboxes) keep their own single-click actions.
+document.addEventListener('dblclick', e => {
+  if (e.target.closest('button, input, select, a, textarea')) return;
+  const card = e.target.closest('.task');
+  if (card?.dataset.id) openEditModal(card.dataset.id);
+});
+
 document.getElementById('editModalCloseBtn').addEventListener('click', closeEditModal);
 document.getElementById('editCancelBtn').addEventListener('click', closeEditModal);
 document.getElementById('editModalBackdrop').addEventListener('click', e => {
