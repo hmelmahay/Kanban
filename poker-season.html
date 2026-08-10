@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Online Game</title>
+  <title>Season Ledger</title>
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <link rel="icon" type="image/png" href="/icon-512.png" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -18,8 +18,8 @@
 
   <header class="topbar">
     <div class="topbar-left">
-      <h1>Online Game</h1>
-      <p class="subtitle" id="syncStatus">PokerNow player dashboard — refreshed Fridays at 3am</p>
+      <h1>Season Ledger</h1>
+      <p class="subtitle" id="syncStatus">Year-to-date money by player &amp; game — refreshed Fridays at 3am</p>
     </div>
     <div class="topbar-right">
       <a href="index.html" class="btn btn-outline">Kanban</a>
@@ -35,16 +35,16 @@
     <div class="report-bar">
       <div class="report-date" id="reportDate">Loading…</div>
       <div class="report-actions">
-        <a href="poker-season.html" class="btn btn-outline" title="Year-to-date money by player &amp; game">Season Ledger</a>
+        <a href="poker.html" class="btn btn-outline" title="Player stats dashboard">Player Dashboard</a>
         <select id="historyPicker" class="form-select" title="View an earlier refresh"></select>
         <button id="refreshBtn" class="btn btn-outline" title="Re-check for a newer refresh">Reload</button>
       </div>
     </div>
 
     <div class="report-frame-wrap">
-      <iframe id="reportFrame" class="report-frame" sandbox="allow-scripts allow-top-navigation-by-user-activation" title="Online Game dashboard"></iframe>
+      <iframe id="reportFrame" class="report-frame" sandbox="allow-scripts allow-top-navigation-by-user-activation" title="Season ledger"></iframe>
       <div id="reportEmpty" class="report-empty hidden">
-        <p>No dashboard has been posted yet.</p>
+        <p>No season ledger has been posted yet.</p>
         <p class="report-empty-hint">The Friday 3am refresh writes one here each week.</p>
       </div>
     </div>
@@ -53,7 +53,7 @@
   <!-- Login -->
   <div id="loginOverlay">
     <div id="loginCard">
-      <h2>Online Game</h2>
+      <h2>Season Ledger</h2>
       <p id="loginError" class="login-error" style="display:none"></p>
       <div class="login-field">
         <label for="loginEmail">Email</label>
@@ -67,6 +67,10 @@
     </div>
   </div>
 
+  <script>
+    window.POKER_TABLE = 'poker_season_reports';
+    window.POKER_STATUS = 'Year-to-date money by player & game — refreshed Fridays at 3am';
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="poker.js"></script>
 </body>

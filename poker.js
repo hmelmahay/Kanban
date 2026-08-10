@@ -2,6 +2,12 @@
 const SUPABASE_URL = 'https://sztatmknjyzzyzngvpff.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_GvPXZ8AVgix3aZ2UDS0YRQ_ktlLvMtB';
 
+// Which report table this page shows. poker.html uses the default; a page can
+// set window.POKER_TABLE / window.POKER_STATUS before loading this script
+// (poker-season.html does, pointing at poker_season_reports).
+const TABLE = window.POKER_TABLE || 'poker_reports';
+const PAGE_STATUS = window.POKER_STATUS || 'PokerNow player dashboard — refreshed Fridays at 3am';
+
 // How many past refreshes the history picker offers.
 const HISTORY_LIMIT = 30;
 
@@ -74,7 +80,7 @@ async function initSupabase() {
 // ── Data ──────────────────────────────────────────────────────────────────────
 async function loadIndex() {
   const { data, error } = await db
-    .from('poker_reports')
+    .from(TABLE)
     .select('id, report_date, updated_at')
     .order('report_date', { ascending: false })
     .limit(HISTORY_LIMIT);
@@ -85,7 +91,7 @@ async function loadIndex() {
 
 async function loadReport(id) {
   const { data, error } = await db
-    .from('poker_reports')
+    .from(TABLE)
     .select('report_date, html, updated_at')
     .eq('id', id)
     .single();
@@ -103,8 +109,22 @@ const MOBILE_GUARD = `<style>
 }
 </style>`;
 
+// The engine's pages cross-link with relative hrefs meant for local files
+// (poker_season.html ⇄ poker_dashboard.html). Inside the srcdoc iframe those
+// would 404 — rewrite them to the real tabs and break out of the frame.
+// Needs allow-top-navigation-by-user-activation on the iframe sandbox.
+const LINK_FIX = `<scr` + `ipt>
+document.addEventListener('DOMContentLoaded', () => {
+  const remap = { 'poker_season.html': 'poker-season.html', 'poker_dashboard.html': 'poker.html' };
+  document.querySelectorAll('a[href]').forEach(a => {
+    const to = remap[a.getAttribute('href')];
+    if (to) { a.href = to; a.target = '_top'; }
+  });
+});
+</scr` + `ipt>`;
+
 const withMobileGuard = html =>
-  html.includes('</head>') ? html.replace('</head>', MOBILE_GUARD + '</head>') : MOBILE_GUARD + html;
+  html.includes('</head>') ? html.replace('</head>', MOBILE_GUARD + LINK_FIX + '</head>') : MOBILE_GUARD + LINK_FIX + html;
 
 function renderHistoryPicker(selectedId) {
   const sel = $('historyPicker');
@@ -149,7 +169,7 @@ function renderReport(row) {
   label.classList.toggle('stale', age >= STALE_DAYS);
 
   setStatus(age < STALE_DAYS
-    ? 'PokerNow player dashboard — refreshed Fridays at 3am'
+    ? PAGE_STATUS
     : `Last refresh covered ${prettyDate(row.report_date)} — the Friday 3am job may not have run`);
 }
 
