@@ -336,6 +336,20 @@ function saveTasksFor(bid) {
 const STATUSES = ['todo', 'ondeck', 'doing', 'done'];
 const REORDERABLE = new Set(['todo', 'ondeck', 'doing']);
 
+const PRIORITY_RANK = { Critical: 0, High: 1, Medium: 2, Low: 3 };
+
+// Auto-sort: highest priority first (Critical → High → Medium → Low), then by
+// due date (overdue → soonest → later → no due date last).
+function priorityDueCompare(a, b) {
+  const pa = PRIORITY_RANK[a.priority] ?? 99;
+  const pb = PRIORITY_RANK[b.priority] ?? 99;
+  if (pa !== pb) return pa - pb;
+  if (!a.due_date && !b.due_date) return 0;
+  if (!a.due_date) return 1;   // no due date sinks to the bottom
+  if (!b.due_date) return -1;
+  return a.due_date.localeCompare(b.due_date); // ISO dates → chronological (overdue first)
+}
+
 function renderAll() {
   const pFilter = document.getElementById('priorityFilter').value;
   const query = (document.getElementById('searchInput').value || '').trim().toLowerCase();
@@ -359,12 +373,9 @@ function renderAll() {
     const colTasks = visible
       .filter(t => t.status === status)
       .sort((a, b) => {
-        // To Do, On Deck, Doing: manual sort_order (drag to reorder freely)
-        if (REORDERABLE.has(status)) {
-          return (a.sort_order ?? Number.MAX_SAFE_INTEGER) -
-                 (b.sort_order ?? Number.MAX_SAFE_INTEGER);
-        }
-        // Done: keep due-date sort
+        // To Do, On Deck, Doing: auto-sort by priority, then due date.
+        if (REORDERABLE.has(status)) return priorityDueCompare(a, b);
+        // Done: keep due-date sort (reads as a dated history of finished work).
         if (!a.due_date && !b.due_date) return 0;
         if (!a.due_date) return 1;
         if (!b.due_date) return -1;
