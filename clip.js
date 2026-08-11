@@ -83,46 +83,6 @@ async function loadProjects() {
   sel.innerHTML = projects.map(p =>
     `<option value="${p.id}" ${p.id === defaultId ? 'selected' : ''}>${escHtml(p.name)}</option>`
   ).join('');
-  renderProjectsTable();
-}
-
-function renderProjectsTable() {
-  const tbody = document.getElementById('projects-tbody');
-  if (!projects.length) {
-    tbody.innerHTML = '<tr><td colspan="5" style="color:var(--muted);padding:8px">No projects yet.</td></tr>';
-    return;
-  }
-  tbody.innerHTML = projects.map(p => `
-    <tr data-id="${p.id}">
-      <td>${escHtml(p.name)}</td>
-      <td class="folder-name">${escHtml(p.base_path || '(default)')}</td>
-      <td class="folder-name">${escHtml(p.folder_name)}</td>
-      <td class="folder-name">${escHtml(p.subfolder || 'New_Files')}</td>
-      <td><button class="btn btn-danger" onclick="deleteProject('${p.id}')">Remove</button></td>
-    </tr>
-  `).join('');
-}
-
-async function addProject() {
-  const name      = document.getElementById('new-project-name').value.trim();
-  const folder    = document.getElementById('new-folder-name').value.trim();
-  const subfolder = document.getElementById('new-subfolder-name').value.trim() || 'New_Files';
-  const basePath  = document.getElementById('new-base-path').value.trim() || null;
-  if (!name || !folder) return alert('Name and folder are required.');
-  if (!db) return alert('Not connected to Supabase.');
-  const { error } = await db.from('projects').insert({ name, folder_name: folder, subfolder, base_path: basePath });
-  if (error) { alert('Error: ' + error.message); return; }
-  document.getElementById('new-project-name').value = '';
-  document.getElementById('new-folder-name').value = '';
-  document.getElementById('new-subfolder-name').value = '';
-  document.getElementById('new-base-path').value = '';
-  await loadProjects();
-}
-
-async function deleteProject(id) {
-  if (!confirm('Remove this project? Existing clips will not be deleted.')) return;
-  await db.from('projects').delete().eq('id', id);
-  await loadProjects();
 }
 
 // ── File handling ─────────────────────────────────────────────────────────────
@@ -317,21 +277,6 @@ function setupEventListeners() {
     e.preventDefault();
     zone.classList.remove('drag-over');
     addFiles(Array.from(e.dataTransfer.files));
-  });
-
-  // Projects toggle
-  document.getElementById('projects-toggle').addEventListener('click', () => {
-    const panel = document.getElementById('projects-panel');
-    const icon  = document.querySelector('.toggle-icon');
-    const open  = panel.style.display === 'none';
-    panel.style.display = open ? 'flex' : 'none';
-    icon.classList.toggle('open', open);
-  });
-
-  // Add project
-  document.getElementById('add-project-btn').addEventListener('click', addProject);
-  document.getElementById('new-folder-name').addEventListener('keydown', e => {
-    if (e.key === 'Enter') addProject();
   });
 }
 

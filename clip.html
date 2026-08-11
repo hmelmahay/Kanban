@@ -28,6 +28,7 @@
       <a href="sheets.html" class="btn btn-ghost">Sheets</a>
       <a href="outstanding.html" class="btn btn-ghost">Outstanding</a>
       <a href="poker.html" class="btn btn-ghost">Poker</a>
+      <a href="dashboards.html" class="btn btn-ghost">Dev</a>
       <button id="signOutBtn" class="btn btn-ghost">Sign Out</button>
     </div>
   </div>
@@ -96,41 +97,14 @@
       </div>
     </div>
 
-    <!-- Right: Recent clips + project management -->
+    <!-- Right: Recent clips -->
     <div class="panel right-panel">
-
-      <!-- Recent clips -->
       <div class="section">
         <h2 class="panel-title">Recent Clips</h2>
         <div id="clips-list" class="clips-list">
           <div class="empty-state">No clips yet.</div>
         </div>
       </div>
-
-      <!-- Manage Projects (collapsible) -->
-      <div class="section">
-        <button class="section-toggle" id="projects-toggle">
-          <span>Manage Projects</span>
-          <span class="toggle-icon">&#9654;</span>
-        </button>
-        <div id="projects-panel" class="projects-panel" style="display:none">
-          <p class="hint">Folder names must match exactly what exists on your Mac mini under <code>/users/steve/workpm/projects/</code></p>
-          <table class="projects-table" id="projects-table">
-            <thead>
-              <tr><th>Display Name</th><th>Base Path</th><th>Folder Name</th><th>Subfolder</th><th></th></tr>
-            </thead>
-            <tbody id="projects-tbody"></tbody>
-          </table>
-          <div class="add-project-row">
-            <input type="text" id="new-project-name" class="form-input" placeholder="Display name (e.g. Finance)" />
-            <input type="text" id="new-base-path" class="form-input" placeholder="Base path (blank = default)" />
-            <input type="text" id="new-folder-name" class="form-input" placeholder="Folder name (e.g. Finance)" />
-            <input type="text" id="new-subfolder-name" class="form-input" placeholder="Subfolder (default: New_Files)" />
-            <button id="add-project-btn" class="btn btn-primary btn-sm">Add</button>
-          </div>
-        </div>
-      </div>
-
     </div>
   </div>
 
