@@ -1,0 +1,73 @@
+/* Development Dashboard, a static list of deployed builds. */
+
+.dev-main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 20px 16px 48px;
+}
+
+.dev-group {
+  margin-bottom: 28px;
+}
+
+.dev-group-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.6;
+  margin: 0 0 10px;
+}
+
+.dev-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+}
+
+.dev-card {
+  display: block;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s, background 0.15s, transform 0.1s;
+}
+
+.dev-card:hover {
+  border-color: rgba(88, 166, 255, 0.6);
+  background: rgba(88, 166, 255, 0.08);
+  transform: translateY(-1px);
+}
+
+.dev-card:active {
+  transform: translateY(0);
+}
+
+.dev-name {
+  display: block;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.dev-note {
+  display: block;
+  font-size: 12px;
+  opacity: 0.55;
+  margin-top: 3px;
+}
+
+.dev-footnote {
+  font-size: 12px;
+  opacity: 0.45;
+  margin-top: 32px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+@media (max-width: 640px) {
+  .dev-grid { grid-template-columns: 1fr; }
+  .dev-main { padding: 16px 12px 40px; }
+}
