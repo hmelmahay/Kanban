@@ -55,11 +55,15 @@ async function initSupabase() {
 async function loadSheets() {
   const { data, error } = await db
     .from('smartsheet_exports')
-    .select('id, label, sheet_id, enabled, sort_order, destination')
-    .order('sort_order', { ascending: true })
-    .order('created_at', { ascending: true });
+    .select('id, label, sheet_id, enabled, sort_order, destination');
   if (error) { setStatus('Load failed: ' + error.message); return; }
   sheets = data || [];
+  // Alphabetical by filename; unlabeled (auto-titled) rows sink to the bottom.
+  sheets.sort((a, b) => {
+    if (!a.label !== !b.label) return a.label ? -1 : 1;
+    return (a.label || '').localeCompare(b.label || '', undefined, { sensitivity: 'base' })
+      || String(a.sheet_id).localeCompare(String(b.sheet_id));
+  });
   render();
 }
 
