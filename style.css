@@ -398,44 +398,30 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease, opacity 0.12s ease;
 }
 
-/* Per-column colors: the header carries the hue (background, title, count) with
-   a matching top accent stripe; cards are a LIGHTER shade of that same hue.
-   Amber = review, Blue = planned, Purple = staged, Green = active, Gray = done. */
-.column-pending               { border-top: 3px solid #f59e0b; }
-.column[data-status="todo"]   { border-top: 3px solid #3b82f6; }
-.column[data-status="ondeck"] { border-top: 3px solid #8b5cf6; }
-.column[data-status="doing"]  { border-top: 3px solid #22c55e; }
-.column[data-status="done"]   { border-top: 3px solid #6b7280; }
+/* Column shade ramp: darkest on the left, lightening toward Done.
+   Cards inherit the shade of whatever column they sit in. */
+.column[data-status="pending"] .task { background: linear-gradient(180deg, #111c45, #0c1530); border-color: #24387a; }
+.column[data-status="todo"]    .task { background: linear-gradient(180deg, #16265a, #101c41); border-color: #2e4590; }
+.column[data-status="ondeck"]  .task { background: linear-gradient(180deg, #1f3378, #182a60); border-color: #3d59b8; }
+.column[data-status="doing"]   .task { background: linear-gradient(180deg, #2c4499, #223780); border-color: #4f6bd0; }
+.column[data-status="done"]    .task { background: linear-gradient(180deg, #4160c4, #3350ab); border-color: #6c86e2; }
 
-/* Headers (bold, darker hue) */
-.column[data-status="todo"]   .column-header { background: #12233f; border-bottom-color: #1e3a6b; }
-.column[data-status="ondeck"] .column-header { background: #1e1740; border-bottom-color: #3b2f6b; }
-.column[data-status="doing"]  .column-header { background: #0f2a1c; border-bottom-color: #1c4b32; }
-.column[data-status="done"]   .column-header { background: #1a1e26; border-bottom-color: #333a45; }
+/* Headers and count bubbles tinted to their column's shade (Pending keeps
+   its amber approval styling). */
+.column[data-status="todo"]   .column-header { background: #131f4a; border-bottom-color: #2e4590; }
+.column[data-status="ondeck"] .column-header { background: #182a60; border-bottom-color: #3d59b8; }
+.column[data-status="doing"]  .column-header { background: #203377; border-bottom-color: #4f6bd0; }
+.column[data-status="done"]   .column-header { background: #31479c; border-bottom-color: #6c86e2; }
+.column[data-status="todo"]   .count { background: #2e4590; color: #cdd9f7; }
+.column[data-status="ondeck"] .count { background: #3d59b8; color: #dbe4fb; }
+.column[data-status="doing"]  .count { background: #4f6bd0; color: #eef2fd; }
+.column[data-status="done"]   .count { background: #6c86e2; color: #101c41; }
 
-.column[data-status="todo"]   .column-title { color: #93c5fd; }
-.column[data-status="ondeck"] .column-title { color: #c4b5fd; }
-.column[data-status="doing"]  .column-title { color: #86efac; }
-.column[data-status="done"]   .column-title { color: #cbd5e1; }
-
-.column[data-status="todo"]   .count { background: #1d4ed8; color: #dbeafe; }
-.column[data-status="ondeck"] .count { background: #7c3aed; color: #ede9fe; }
-.column[data-status="doing"]  .count { background: #16a34a; color: #dcfce7; }
-.column[data-status="done"]   .count { background: #4b5563; color: #e5e7eb; }
-
-/* Cards: a much lighter shade of the column's header hue (white text stays
-   legible on these mid-tones). */
-.column[data-status="pending"] .task { background: #6d5320; border-color: #957228; }
-.column[data-status="todo"]    .task { background: #305ba6; border-color: #5580c4; }
-.column[data-status="ondeck"]  .task { background: #46379f; border-color: #6b5cc2; }
-.column[data-status="doing"]   .task { background: #24704a; border-color: #3d9068; }
-.column[data-status="done"]    .task { background: #3b4453; border-color: #566175; }
-
-/* Hover lift (neutral, hue-agnostic) */
+/* Hover lift */
 .task:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.45);
-  border-color: #46506a;
+  border-color: #6b85e0;
 }
 
 /* Done work visibly recedes; starred accomplishments stay full-strength */
