@@ -423,12 +423,13 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .column[data-status="doing"]  .count { background: #16a34a; color: #dcfce7; }
 .column[data-status="done"]   .count { background: #4b5563; color: #e5e7eb; }
 
-/* Cards: a lighter shade of the column's header hue. */
-.column[data-status="pending"] .task { background: #3a2c11; border-color: #5c451c; }
-.column[data-status="todo"]    .task { background: #1d3763; border-color: #315a92; }
-.column[data-status="ondeck"]  .task { background: #2b2168; border-color: #4a3d92; }
-.column[data-status="doing"]   .task { background: #17402c; border-color: #266545; }
-.column[data-status="done"]    .task { background: #262b35; border-color: #3d4550; }
+/* Cards: a much lighter shade of the column's header hue (white text stays
+   legible on these mid-tones). */
+.column[data-status="pending"] .task { background: #6d5320; border-color: #957228; }
+.column[data-status="todo"]    .task { background: #305ba6; border-color: #5580c4; }
+.column[data-status="ondeck"]  .task { background: #46379f; border-color: #6b5cc2; }
+.column[data-status="doing"]   .task { background: #24704a; border-color: #3d9068; }
+.column[data-status="done"]    .task { background: #3b4453; border-color: #566175; }
 
 /* Hover lift (neutral, hue-agnostic) */
 .task:hover {
