@@ -395,6 +395,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   cursor: grab;
   flex-shrink: 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease, opacity 0.12s ease;
 }
 
 /* Column shade ramp: darkest on the left, lightening toward Done.
@@ -405,9 +406,37 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .column[data-status="doing"]   .task { background: linear-gradient(180deg, #2c4499, #223780); border-color: #4f6bd0; }
 .column[data-status="done"]    .task { background: linear-gradient(180deg, #4160c4, #3350ab); border-color: #6c86e2; }
 
+/* Headers and count bubbles tinted to their column's shade (Pending keeps
+   its amber approval styling). */
+.column[data-status="todo"]   .column-header { background: #131f4a; border-bottom-color: #2e4590; }
+.column[data-status="ondeck"] .column-header { background: #182a60; border-bottom-color: #3d59b8; }
+.column[data-status="doing"]  .column-header { background: #203377; border-bottom-color: #4f6bd0; }
+.column[data-status="done"]   .column-header { background: #31479c; border-bottom-color: #6c86e2; }
+.column[data-status="todo"]   .count { background: #2e4590; color: #cdd9f7; }
+.column[data-status="ondeck"] .count { background: #3d59b8; color: #dbe4fb; }
+.column[data-status="doing"]  .count { background: #4f6bd0; color: #eef2fd; }
+.column[data-status="done"]   .count { background: #6c86e2; color: #101c41; }
+
+/* Hover lift */
+.task:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.45);
+  border-color: #6b85e0;
+}
+
+/* Done work visibly recedes; starred accomplishments stay full-strength */
+.column[data-status="done"] .task { opacity: 0.75; }
+.column[data-status="done"] .task:hover,
+.column[data-status="done"] .task.task-accomplishment { opacity: 1; }
+.column[data-status="done"] .task-title {
+  text-decoration: line-through;
+  text-decoration-color: rgba(230, 237, 243, 0.45);
+}
+.column[data-status="done"] .task-accomplishment .task-title { text-decoration: none; }
+
 .task:active { cursor: grabbing; }
 
-.task.dragging { opacity: 0.4; }
+.task.dragging { opacity: 0.5; transform: rotate(2.5deg) scale(1.02); }
 
 .task.drop-before {
   box-shadow: 0 -3px 0 0 var(--primary);
