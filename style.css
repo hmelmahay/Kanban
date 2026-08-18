@@ -388,12 +388,13 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 /* ── Task cards ── */
 .task {
-  background: var(--surface2);
-  border: 1px solid var(--border);
+  background: linear-gradient(180deg, #27408f, #1f3372);
+  border: 1px solid #4864cf;
   border-radius: var(--radius);
   padding: 10px;
   cursor: grab;
   flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
 }
 
 .task:active { cursor: grabbing; }
@@ -518,7 +519,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 .task-notes {
   font-size: 12px;
-  color: var(--muted);
+  color: #b6c2e8;
   margin-bottom: 8px;
   white-space: pre-wrap;
 }
