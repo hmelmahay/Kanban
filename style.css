@@ -388,8 +388,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 /* ── Task cards ── */
 .task {
-  background: linear-gradient(180deg, #1d3170, #162551);
-  border: 1px solid #3a55b0;
+  background: linear-gradient(180deg, #16265a, #101c41);
+  border: 1px solid #2e4590;
   border-radius: var(--radius);
   padding: 10px;
   cursor: grab;
