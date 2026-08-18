@@ -423,6 +423,13 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .column[data-status="doing"]  .count { background: #16a34a; color: #dcfce7; }
 .column[data-status="done"]   .count { background: #4b5563; color: #e5e7eb; }
 
+/* Cards take a light wash of their column's hue. */
+.column[data-status="pending"] .task { background: #241c10; border-color: #4d3a17; }
+.column[data-status="todo"]    .task { background: #15233d; border-color: #294670; }
+.column[data-status="ondeck"]  .task { background: #201a3d; border-color: #3d327a; }
+.column[data-status="doing"]   .task { background: #10291c; border-color: #1f4d34; }
+.column[data-status="done"]    .task { background: #191d25; border-color: #333a45; }
+
 /* Hover lift (neutral, hue-agnostic) */
 .task:hover {
   transform: translateY(-2px);
