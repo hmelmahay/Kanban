@@ -297,8 +297,12 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 /* ── Pending Approval column ── */
-/* Uniform header like the others; its amber identity shows in the top stripe
-   and card wash. */
+.column-pending { border-color: #b45309; }
+.column-pending .column-header {
+  background: #2d2008;
+  border-bottom-color: #b45309;
+}
+.column-pending .column-title { color: #fbbf24; }
 
 .approve-row {
   display: flex;
@@ -348,7 +352,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   justify-content: space-between;
   align-items: center;
   padding: 8px 12px;
-  background: #2a3140;            /* uniform header band, stands out above cards */
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
@@ -395,22 +398,37 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease, opacity 0.12s ease;
 }
 
-/* Column identity lives in a thin top accent stripe + a light card wash;
-   headers are one uniform band (styled on .column-header) that stands out
-   above the tinted cards. Amber = review, Blue = planned, Purple = staged,
-   Green = active, Gray = done. */
+/* Per-column colors: the header carries the hue (background, title, count) with
+   a matching top accent stripe; cards are a LIGHTER shade of that same hue.
+   Amber = review, Blue = planned, Purple = staged, Green = active, Gray = done. */
 .column-pending               { border-top: 3px solid #f59e0b; }
 .column[data-status="todo"]   { border-top: 3px solid #3b82f6; }
 .column[data-status="ondeck"] { border-top: 3px solid #8b5cf6; }
 .column[data-status="doing"]  { border-top: 3px solid #22c55e; }
 .column[data-status="done"]   { border-top: 3px solid #6b7280; }
 
-/* Cards take a light wash of their column's hue. */
-.column[data-status="pending"] .task { background: #2b2113; border-color: #574018; }
-.column[data-status="todo"]    .task { background: #182c4d; border-color: #2f5488; }
-.column[data-status="ondeck"]  .task { background: #251e49; border-color: #463a8a; }
-.column[data-status="doing"]   .task { background: #123527; border-color: #245c3f; }
-.column[data-status="done"]    .task { background: #1b202a; border-color: #39414d; }
+/* Headers (bold, darker hue) */
+.column[data-status="todo"]   .column-header { background: #12233f; border-bottom-color: #1e3a6b; }
+.column[data-status="ondeck"] .column-header { background: #1e1740; border-bottom-color: #3b2f6b; }
+.column[data-status="doing"]  .column-header { background: #0f2a1c; border-bottom-color: #1c4b32; }
+.column[data-status="done"]   .column-header { background: #1a1e26; border-bottom-color: #333a45; }
+
+.column[data-status="todo"]   .column-title { color: #93c5fd; }
+.column[data-status="ondeck"] .column-title { color: #c4b5fd; }
+.column[data-status="doing"]  .column-title { color: #86efac; }
+.column[data-status="done"]   .column-title { color: #cbd5e1; }
+
+.column[data-status="todo"]   .count { background: #1d4ed8; color: #dbeafe; }
+.column[data-status="ondeck"] .count { background: #7c3aed; color: #ede9fe; }
+.column[data-status="doing"]  .count { background: #16a34a; color: #dcfce7; }
+.column[data-status="done"]   .count { background: #4b5563; color: #e5e7eb; }
+
+/* Cards: a lighter shade of the column's header hue. */
+.column[data-status="pending"] .task { background: #3a2c11; border-color: #5c451c; }
+.column[data-status="todo"]    .task { background: #1d3763; border-color: #315a92; }
+.column[data-status="ondeck"]  .task { background: #2b2168; border-color: #4a3d92; }
+.column[data-status="doing"]   .task { background: #17402c; border-color: #266545; }
+.column[data-status="done"]    .task { background: #262b35; border-color: #3d4550; }
 
 /* Hover lift (neutral, hue-agnostic) */
 .task:hover {
