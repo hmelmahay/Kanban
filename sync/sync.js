@@ -38,6 +38,12 @@ function formatDate(isoString) {
   return isoString.slice(0, 10); // YYYY-MM-DD
 }
 
+// Prefix a filename with the clip date, matching the markdown naming scheme.
+// Skips files that already start with a YYYY-MM-DD- prefix.
+function datePrefixed(fname, date) {
+  return /^\d{4}-\d{2}-\d{2}-/.test(fname) ? fname : `${date}-${fname}`;
+}
+
 function downloadFile(url, destPath) {
   return new Promise((resolve, reject) => {
     const file = fs.createWriteStream(destPath);
@@ -75,7 +81,7 @@ function buildMarkdown(clip, projectName) {
     lines.push('');
     lines.push('## Attachments');
     clip.file_paths.forEach(fp => {
-      const fname = path.basename(fp);
+      const fname = datePrefixed(path.basename(fp), date);
       lines.push(`- [${fname}](./${fname})`);
     });
   }
@@ -138,9 +144,10 @@ async function sync() {
       }
       fs.mkdirSync(destDir, { recursive: true });
 
+      const date = formatDate(clip.created_at);
+
       // Write markdown only if content was pasted
       if (clip.content && clip.content.trim()) {
-        const date     = formatDate(clip.created_at);
         const slug     = slugify(clip.title);
         const mdName   = `${date}-${slug}.md`;
         const mdPath   = path.join(destDir, mdName);
@@ -151,13 +158,14 @@ async function sync() {
       // Download attachments — abort clip if any file fails
       for (const filePath of (clip.file_paths || [])) {
         const fname = path.basename(filePath);
-        const dest  = path.join(destDir, fname);
+        const destName = datePrefixed(fname, date);
+        const dest  = path.join(destDir, destName);
         const { data: signedData, error: signErr } = await db.storage
           .from('clip-attachments')
           .createSignedUrl(filePath, 300);  // 5 min signed URL
         if (signErr) throw new Error(`Signed URL failed for "${fname}": ${signErr.message}`);
         await downloadFile(signedData.signedUrl, dest);
-        log(`  Downloaded: ${fname}`);
+        log(`  Downloaded: ${destName}`);
       }
 
       // Delete storage files (no longer needed after download) then mark clip as synced
