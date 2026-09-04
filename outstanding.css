@@ -1,7 +1,7 @@
 /* Outstanding Items page */
 /* style.css locks body to 100vh/overflow:hidden for the Kanban board.
    This page fills the viewport too, but the report scrolls inside its iframe. */
-body { height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+body { height: 100vh; height: 100dvh; overflow: hidden; display: flex; flex-direction: column; }
 
 .outstanding-main {
   flex: 1 1 auto;
@@ -61,8 +61,11 @@ body { height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
 .report-empty-hint { font-size: .85rem; color: #64748b; }
 .report-empty.hidden { display: none; }
 
-@media (max-width: 640px) {
-  .report-bar { align-items: flex-start; }
+@media (max-width: 820px) {
+  .outstanding-main { padding: 10px 10px calc(10px + env(safe-area-inset-bottom)); }
+  .report-bar { align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+  .report-date { font-size: .85rem; }
   .report-actions { width: 100%; }
-  .report-actions .form-select { flex: 1 1 auto; min-width: 0; }
+  .report-actions .form-select { flex: 1 1 auto; min-width: 0; width: auto; }
+  .report-actions .btn { flex-shrink: 0; }
 }

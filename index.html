@@ -22,6 +22,7 @@
       <p class="subtitle" id="syncStatus">Shared kanban board with Supabase sync</p>
     </div>
     <div class="topbar-right">
+      <a href="today.html" class="btn btn-outline">Today</a>
       <a href="clip.html" class="btn btn-outline">Clip Board</a>
       <a href="badges.html" class="btn btn-outline">Badge Tracker</a>
       <a href="sheets.html" class="btn btn-outline">Sheets</a>
@@ -36,7 +37,7 @@
   <div class="board-bar">
     <div class="board-tabs" id="boardTabs" role="tablist" aria-label="Board"></div>
     <div class="board-actions">
-      <input id="searchInput" type="search" class="form-input board-search" placeholder="Search cards…" />
+      <input id="searchInput" type="search" class="form-input board-search" placeholder="Search cards…  ( / )" title="Press / to jump here" />
       <select id="priorityFilter" class="form-select">
         <option value="">All Priorities</option>
         <option value="Critical">Critical</option>
@@ -53,6 +54,7 @@
         <option value="anywhere">Anywhere (hide home-only)</option>
       </select>
       <button id="accomplishmentsBtn" class="btn btn-outline" title="Compile flagged Done tasks into a status report">Accomplishments</button>
+      <button id="shortcutsBtn" class="btn btn-outline btn-kbd" title="Keyboard shortcuts (?)">?</button>
       <button id="newBoardBtn" class="btn btn-primary">New Board</button>
       <button id="renameBoardBtn" class="btn btn-outline">Rename</button>
       <button id="deleteBoardBtn" class="btn btn-danger-outline">Delete Board</button>
@@ -66,7 +68,7 @@
       <span class="form-toggle-icon">&#9662;</span>
     </button>
     <div class="form-row">
-      <input id="taskTitle" type="text" placeholder="Enter a task" class="form-input flex-2" />
+      <input id="taskTitle" type="text" placeholder="Enter a task  ( N )" class="form-input flex-2" title="Press N to jump here" />
       <select id="taskPriority" class="form-select">
         <option>Critical</option>
         <option>High</option>
@@ -140,6 +142,7 @@
       <div class="column-header">
         <span class="column-title">Done</span>
         <span class="count" id="count-done">0</span>
+        <button id="archiveToggleBtn" class="btn btn-icon" style="display:none"></button>
         <button id="clearDoneBtn" class="btn btn-icon" title="Clear all done tasks">Clear</button>
       </div>
       <div class="column-body" id="col-done"></div>

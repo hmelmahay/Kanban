@@ -90,10 +90,23 @@ async function loadBoards() {
     return;
   }
 
-  const savedId = localStorage.getItem('kanban_active_board');
+  const params   = new URLSearchParams(location.search);
+  const urlBoard = params.get('board');
+  const savedId  = urlBoard && boards.some(b => b.id === urlBoard)
+    ? urlBoard
+    : localStorage.getItem('kanban_active_board');
   boardId = boards.find(b => b.id === savedId) ? savedId : boards[0].id;
+  if (urlBoard) localStorage.setItem('kanban_active_board', boardId);
   renderBoardSelect();
   await loadTasks();
+
+  // Deep link from the Today hub: ?board=<id>&task=<id> highlights that card.
+  const urlTask = params.get('task');
+  if (urlTask && tasks.some(t => t.id === urlTask)) {
+    selectCard(urlTask);
+    document.querySelector(`.task[data-id="${urlTask}"]`)?.scrollIntoView({ block: 'center' });
+  }
+  if (urlBoard || urlTask) history.replaceState(null, '', location.pathname);
 }
 
 async function createBoard(name) {
@@ -213,6 +226,10 @@ async function addTask(task) {
 }
 
 async function updateTask(id, changes) {
+  const before = tasks.find(t => t.id === id);
+  if (changes.status && before && changes.status !== before.status && !changes.status_since) {
+    changes.status_since = new Date().toISOString();
+  }
   if (changes.status === 'done' && !changes.completed_at) {
     changes.completed_at = new Date().toISOString().split('T')[0];
   } else if (changes.status && changes.status !== 'done') {
@@ -370,8 +387,11 @@ function renderAll() {
 
   STATUSES.forEach(status => {
     const col = document.getElementById('col-' + status);
+    const hiddenDone = status === 'done' && !showArchived
+      ? tasks.filter(t => t.status === 'done' && isArchived(t)).length : 0;
     const colTasks = visible
       .filter(t => t.status === status)
+      .filter(t => status !== 'done' || showArchived || !isArchived(t))
       .sort((a, b) => {
         // To Do, On Deck, Doing: auto-sort by priority, then due date.
         if (REORDERABLE.has(status)) return priorityDueCompare(a, b);
@@ -385,9 +405,12 @@ function renderAll() {
       tasks.filter(t => t.status === status).length;
     const tabCount = document.getElementById('tab-count-' + status);
     if (tabCount) tabCount.textContent = tasks.filter(t => t.status === status).length;
+    if (status === 'doing') applyWipLimit(tasks.filter(t => t.status === 'doing').length);
+    if (status === 'done')  updateArchiveToggle();
 
     if (colTasks.length === 0) {
-      const label = (query || pFilter || overdueOnly || locationFilter) ? 'No matches' : 'No tasks';
+      const label = (query || pFilter || overdueOnly || locationFilter) ? 'No matches'
+        : hiddenDone ? `Nothing in the last ${DONE_ARCHIVE_DAYS} days` : 'No tasks';
       col.innerHTML = `<div class="empty-state">${label}</div>`;
       return;
     }
@@ -572,13 +595,26 @@ function renderTask(t) {
     ? 'Home-only — can only be done at the Mac (click to clear)'
     : 'Mark as home-only (can only be done at the Mac)';
 
+  // Aging: how long the card has sat in On Deck / Doing. Amber at STALE_DAYS,
+  // red at STALE_HOT_DAYS — a nudge to finish it or push it back.
+  const ages    = t.status === 'doing' || t.status === 'ondeck';
+  const age     = ages ? statusAgeDays(t) : 0;
+  const colName = t.status === 'doing' ? 'Doing' : 'On Deck';
+  const ageCls  = age >= STALE_HOT_DAYS ? ' badge-age-hot' : age >= STALE_DAYS ? ' badge-age-stale' : '';
+  const ageBadge = ages && age >= 1
+    ? `<span class="badge badge-age${ageCls}" title="In ${colName} since ${formatCreated(t.status_since || t.created_at)}">${age}d in ${colName}</span>`
+    : '';
+  const stale = ages && age >= STALE_DAYS;
+  const cls = `task${starred ? ' task-accomplishment' : ''}${stale ? ' task-stale' : ''}${t.id === selectedId ? ' task-selected' : ''}`;
+
   return `
-    <div class="task${starred ? ' task-accomplishment' : ''}" draggable="true" data-id="${t.id}">
+    <div class="${cls}" draggable="true" data-id="${t.id}">
       <div class="task-title">${escHtml(t.title)}</div>
       <div class="task-meta">
         <span class="badge priority-${t.priority}">${t.priority}</span>
         ${allBoardsMode ? `<span class="badge badge-board">${escHtml(boards.find(b => b.id === t.board_id)?.name || '')}</span>` : ''}
         ${dateBadge}
+        ${ageBadge}
         ${homeOnly ? `<span class="badge badge-home" title="Can only be done at home (Mac)">&#127968; Home</span>` : ''}
         ${t.recurring ? `<span class="badge badge-recurring">${recurringLabel(t.recurring)}</span>` : ''}
         ${starred ? `<span class="badge badge-accomplishment" title="Flagged as accomplishment">&#9733; Accomplishment</span>` : ''}
@@ -588,6 +624,7 @@ function renderTask(t) {
         ${t.created_at ? `<span class="task-created" title="Created ${formatCreated(t.created_at)}">${formatCreated(t.created_at)}</span>` : ''}
         <button class="home-btn${homeOnly ? ' active' : ''}" data-id="${t.id}" title="${homeTitle}">&#127968;</button>
         <button class="star-btn${starred ? ' starred' : ''}" data-id="${t.id}" title="${starTitle}">${starred ? '&#9733;' : '&#9734;'}</button>
+        ${!done ? `<button class="btn btn-icon snooze-btn" data-id="${t.id}" title="Snooze — push the due date (S)">&#9200;</button>` : ''}
         ${idx > 0 ? `<button class="btn btn-icon move-btn" data-id="${t.id}" data-dir="-1" title="Move left">&#8592;</button>` : ''}
         ${idx < STATUSES.length - 1 ? `<button class="btn btn-icon move-btn" data-id="${t.id}" data-dir="1" title="Move right">&#8594;</button>` : ''}
         <button class="btn btn-icon edit-task-btn" data-id="${t.id}" title="Edit">&#9998;</button>
@@ -687,6 +724,10 @@ function uid() {
   return crypto.randomUUID();
 }
 
+// On touch devices, auto-focusing a field pops the keyboard over the whole
+// screen — only auto-focus where a physical keyboard is likely.
+const TOUCH_DEVICE = window.matchMedia('(hover: none), (pointer: coarse)').matches;
+
 function escHtml(s) {
   return String(s)
     .replace(/&/g,'&amp;').replace(/</g,'&lt;')
@@ -744,7 +785,7 @@ document.getElementById('addTaskBtn').addEventListener('click', async () => {
   syncIntervalInput('taskRecurring', 'taskRecurringInterval');
   document.getElementById('taskPriority').value  = 'Medium';
   document.getElementById('taskStatus').value    = 'todo';
-  document.getElementById('taskTitle').focus();
+  if (!TOUCH_DEVICE) document.getElementById('taskTitle').focus();
 });
 
 document.getElementById('taskTitle').addEventListener('keydown', e => {
@@ -939,7 +980,7 @@ function openEditModal(id) {
   document.getElementById('editNotes').value = parsed.text;
   renderChecklistEditor(parsed.items);
   document.getElementById('editModalBackdrop').classList.add('open');
-  document.getElementById('editTitle').focus();
+  if (!TOUCH_DEVICE) document.getElementById('editTitle').focus();
 }
 
 function closeEditModal() {
@@ -1020,7 +1061,10 @@ document.getElementById('editSaveBtn').addEventListener('click', async () => {
 });
 
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') closeEditModal();
+  if (e.key !== 'Escape') return;
+  if (popoverEl) { closePopover(); return; }
+  if (document.querySelector('.modal-backdrop.open')) { closeEditModal(); return; }
+  selectCard(null);
 });
 
 document.getElementById('taskRecurring').addEventListener('change', () => syncIntervalInput('taskRecurring', 'taskRecurringInterval'));
@@ -1036,6 +1080,226 @@ document.getElementById('clearDoneBtn').addEventListener('click', async () => {
   tasks = tasks.filter(t => !(t.status === 'done' && t.board_id === boardId));
   if (!db) saveTasks();
   renderAll();
+});
+
+// ── Card aging (stale-card nudge) ─────────────────────────────────────────────
+// status_since is stamped whenever a card changes column (DB default = insert
+// time). Older rows were backfilled from updated_at, so ages are approximate
+// for anything that predates the column.
+const STALE_DAYS     = 7;
+const STALE_HOT_DAYS = 14;
+
+function statusAgeDays(t) {
+  const since = t.status_since || t.created_at;
+  if (!since) return 0;
+  return Math.max(0, Math.floor((Date.now() - new Date(since).getTime()) / 86400000));
+}
+
+// ── WIP limit on Doing ────────────────────────────────────────────────────────
+const DOING_WIP_LIMIT = 3;
+
+function applyWipLimit(n) {
+  const over = n > DOING_WIP_LIMIT;
+  document.querySelector('.column[data-status="doing"]')?.classList.toggle('wip-over', over);
+  document.querySelector('.mobile-tab[data-status="doing"]')?.classList.toggle('wip-over', over);
+  const count = document.getElementById('count-doing');
+  count.textContent = over ? `${n}/${DOING_WIP_LIMIT}` : n;
+  count.title = over
+    ? `Over the work-in-progress limit of ${DOING_WIP_LIMIT} — finish something before starting more`
+    : `WIP limit: ${DOING_WIP_LIMIT}`;
+}
+
+// ── Done auto-archive ─────────────────────────────────────────────────────────
+// Done cards older than DONE_ARCHIVE_DAYS are hidden by default so the column
+// stays scannable. They're still in the DB (and still feed the Accomplishments
+// report); the header toggle reveals them.
+const DONE_ARCHIVE_DAYS = 30;
+let showArchived = localStorage.getItem('kanban_show_archived') === '1';
+
+function isArchived(t) {
+  const d = t.completed_at || (t.created_at || '').slice(0, 10);
+  if (!d) return false;
+  return (Date.now() - new Date(d + 'T00:00:00').getTime()) / 86400000 > DONE_ARCHIVE_DAYS;
+}
+
+function updateArchiveToggle() {
+  const btn = document.getElementById('archiveToggleBtn');
+  if (!btn) return;
+  const hidden = tasks.filter(t => t.status === 'done' && isArchived(t)).length;
+  btn.style.display = hidden ? '' : 'none';
+  btn.textContent = showArchived ? 'Hide older' : `+${hidden} older`;
+  btn.title = showArchived
+    ? `Hide Done cards older than ${DONE_ARCHIVE_DAYS} days`
+    : `Show ${hidden} Done card(s) older than ${DONE_ARCHIVE_DAYS} days`;
+}
+
+document.getElementById('archiveToggleBtn').addEventListener('click', () => {
+  showArchived = !showArchived;
+  localStorage.setItem('kanban_show_archived', showArchived ? '1' : '0');
+  renderAll();
+});
+
+// ── Popover (shared by Snooze and the shortcuts help) ─────────────────────────
+let popoverEl = null;
+
+function closePopover() {
+  if (popoverEl) { popoverEl.remove(); popoverEl = null; }
+}
+
+function openPopover(anchor, html, key) {
+  closePopover();
+  popoverEl = document.createElement('div');
+  popoverEl.className = 'popover';
+  popoverEl.dataset.for = key;
+  popoverEl.innerHTML = html;
+  document.body.appendChild(popoverEl);
+  const r  = anchor.getBoundingClientRect();
+  const pw = popoverEl.offsetWidth, ph = popoverEl.offsetHeight;
+  let left = Math.min(r.left, window.innerWidth - pw - 8);
+  let top  = r.bottom + 6;
+  if (top + ph > window.innerHeight - 8) top = r.top - ph - 6;
+  popoverEl.style.left = Math.max(8, left) + 'px';
+  popoverEl.style.top  = Math.max(8, top) + 'px';
+  return popoverEl;
+}
+
+// Click anywhere outside closes it (capture phase so it runs before card handlers).
+document.addEventListener('click', e => {
+  if (!popoverEl) return;
+  if (popoverEl.contains(e.target)) return;
+  if (e.target.closest('.snooze-btn, #shortcutsBtn')) return;
+  closePopover();
+}, true);
+
+// ── Snooze ────────────────────────────────────────────────────────────────────
+function snoozeOptions() {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const add = n => { const d = new Date(today); d.setDate(d.getDate() + n); return isoDate(d); };
+  const dow = today.getDay();
+  const month = new Date(today); month.setMonth(month.getMonth() + 1);
+  return [
+    { label: 'Tomorrow',    value: add(1) },
+    { label: 'Next Monday', value: add(((8 - dow) % 7) || 7) },
+    { label: 'In 1 week',   value: add(7) },
+    { label: 'In 1 month',  value: isoDate(month) },
+    { label: 'No due date', value: null },
+  ];
+}
+
+function openSnoozeMenu(btn, id) {
+  if (popoverEl && popoverEl.dataset.for === 'snooze-' + id) { closePopover(); return; }
+  const t = tasks.find(x => x.id === id);
+  if (!t) return;
+  const sub = t.status === 'doing' ? 'Moves the card back to On Deck until then.' : '';
+  const html =
+    `<div class="popover-title">Snooze${t.due_date ? ` · due ${formatDate(t.due_date)}` : ''}</div>` +
+    (sub ? `<div class="popover-hint">${sub}</div>` : '') +
+    snoozeOptions().map(o =>
+      `<button type="button" class="popover-item" data-value="${o.value ?? ''}">` +
+        `<span>${o.label}</span>${o.value ? `<span class="popover-sub">${formatDate(o.value)}</span>` : ''}` +
+      `</button>`
+    ).join('');
+  const el = openPopover(btn, html, 'snooze-' + id);
+  el.querySelectorAll('.popover-item').forEach(b => b.addEventListener('click', () => {
+    const value = b.dataset.value || null;
+    closePopover();
+    const changes = { due_date: value };
+    // A card in Doing that's pushed to a future date isn't today's work any
+    // more: park it On Deck; autoMoveTodayTasks brings it back on the day.
+    if (t.status === 'doing' && value && value > isoDate(new Date())) {
+      changes.status = 'ondeck';
+      changes.sort_order = nextSortOrder('ondeck', t.board_id);
+    }
+    updateTask(id, changes);
+  }));
+}
+
+document.addEventListener('click', e => {
+  const btn = e.target.closest('.snooze-btn');
+  if (!btn) return;
+  e.stopPropagation();
+  openSnoozeMenu(btn, btn.dataset.id);
+});
+
+// ── Card selection + keyboard shortcuts ───────────────────────────────────────
+let selectedId = null;
+
+function selectCard(id) {
+  selectedId = id;
+  document.querySelectorAll('.task.task-selected').forEach(el => el.classList.remove('task-selected'));
+  if (id) document.querySelector(`.task[data-id="${id}"]`)?.classList.add('task-selected');
+}
+
+document.addEventListener('click', e => {
+  if (e.target.closest('button, input, select, a, textarea, label, .popover')) return;
+  const card = e.target.closest('.task');
+  selectCard(card?.dataset.id || null);
+});
+
+function isTyping() {
+  const ae = document.activeElement;
+  return !!ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.tagName === 'SELECT' || ae.isContentEditable);
+}
+
+const SHORTCUTS = [
+  ['N',     'New task (focus the Add Task box)'],
+  ['/',     'Search cards'],
+  ['Click', 'Select a card'],
+  ['← →',   'Move selected card between columns'],
+  ['E',     'Edit selected card'],
+  ['S',     'Snooze selected card'],
+  ['Esc',   'Close menu / deselect'],
+];
+
+document.addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (isTyping() || document.querySelector('.modal-backdrop.open')) return;
+
+  if (e.key === '/') {
+    e.preventDefault();
+    document.getElementById('searchInput').focus();
+    return;
+  }
+  if (e.key === 'n' || e.key === 'N') {
+    if (allBoardsMode) return;
+    e.preventDefault();
+    document.getElementById('formBar').classList.add('open');
+    document.getElementById('taskTitle').focus();
+    return;
+  }
+  if (e.key === '?') {
+    e.preventDefault();
+    document.getElementById('shortcutsBtn').click();
+    return;
+  }
+
+  if (!selectedId) return;
+  const task = tasks.find(t => t.id === selectedId);
+  if (!task) return;
+
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+    if (task.status === PENDING) return;
+    const idx  = STATUSES.indexOf(task.status);
+    const next = STATUSES[idx + (e.key === 'ArrowRight' ? 1 : -1)];
+    if (!next) return;
+    e.preventDefault();
+    updateTask(selectedId, { status: next, sort_order: nextSortOrder(next, task.board_id) });
+    return;
+  }
+  if (e.key === 'e' || e.key === 'E') { e.preventDefault(); openEditModal(selectedId); return; }
+  if (e.key === 's' || e.key === 'S') {
+    const btn = document.querySelector(`.snooze-btn[data-id="${selectedId}"]`);
+    if (btn) { e.preventDefault(); openSnoozeMenu(btn, selectedId); }
+  }
+});
+
+document.getElementById('shortcutsBtn').addEventListener('click', e => {
+  if (popoverEl && popoverEl.dataset.for === 'shortcuts') { closePopover(); return; }
+  const html = `<div class="popover-title">Keyboard shortcuts</div>` +
+    `<div class="kbd-list">` +
+    SHORTCUTS.map(([k, d]) => `<div class="kbd-row"><kbd>${k}</kbd><span>${d}</span></div>`).join('') +
+    `</div>`;
+  openPopover(e.currentTarget, html, 'shortcuts');
 });
 
 // ── Accomplishments Report ────────────────────────────────────────────────────
@@ -1219,6 +1483,7 @@ const AUTO_REFRESH_MS = 30000;
 
 function boardBusy() {
   if (draggedId) return true;                                   // mid drag-and-drop
+  if (popoverEl) return true;                                   // snooze / shortcuts menu open
   const edit   = document.getElementById('editModalBackdrop');
   const report = document.getElementById('reportModalBackdrop');
   if (edit && edit.classList.contains('open')) return true;     // edit modal open

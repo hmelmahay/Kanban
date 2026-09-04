@@ -1,0 +1,185 @@
+/* Today hub — the morning landing page. style.css locks body to the viewport
+   for the board; this page scrolls normally. */
+body {
+  height: auto;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: auto;
+  display: block;
+}
+
+.hub {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 18px 16px calc(40px + env(safe-area-inset-bottom));
+}
+
+/* ── Hero ── */
+.hub-hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.hub-greeting { font-size: 24px; font-weight: 700; }
+.hub-date     { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+.hub-stats {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.hub-stat {
+  display: flex;
+  flex-direction: column;
+  min-width: 92px;
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  text-decoration: none;
+  color: inherit;
+}
+.hub-stat-n     { font-size: 20px; font-weight: 700; line-height: 1.1; }
+.hub-stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px; }
+.hub-stat.warn  { border-color: #b45309; }
+.hub-stat.warn .hub-stat-n { color: #fbbf24; }
+.hub-stat.bad   { border-color: #b91c1c; }
+.hub-stat.bad  .hub-stat-n { color: #f87171; }
+.hub-stat.ok   .hub-stat-n { color: #86efac; }
+a.hub-stat:hover { border-color: var(--primary); }
+
+/* ── Layout ── */
+.hub-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.hub-main, .hub-side { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+/* ── Sections ── */
+.hub-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+.hub-section-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.hub-section-head h2 { font-size: 14px; font-weight: 700; }
+.hub-section-note { font-size: 11px; color: var(--muted); }
+.hub-count {
+  background: var(--surface2);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 2px 9px;
+  font-size: 11px;
+  font-weight: 700;
+}
+#sec-overdue .hub-count.nonzero { background: #3b1515; color: #f87171; }
+#sec-today   .hub-count.nonzero { background: #3a2a08; color: #fbbf24; }
+#sec-pending .hub-count.nonzero { background: #3a2a08; color: #fbbf24; }
+.hub-link { font-size: 12px; color: #7dd3fc; text-decoration: none; margin-left: auto; }
+.hub-link:hover { text-decoration: underline; }
+
+/* ── Rows ── */
+.hub-list { display: flex; flex-direction: column; gap: 6px; }
+.hub-empty { font-size: 13px; color: var(--muted); padding: 8px 4px; }
+.hub-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border2);
+  border-radius: 6px;
+  transition: border-color 0.12s, opacity 0.15s, transform 0.15s;
+}
+.hub-row:hover { border-color: var(--border2); border-left-color: #6b85e0; }
+.hub-row.prio-Critical { border-left-color: #ef4444; }
+.hub-row.prio-High     { border-left-color: #f87171; }
+.hub-row.prio-Medium   { border-left-color: #fbbf24; }
+.hub-row.prio-Low      { border-left-color: #60a5fa; }
+.hub-row.leaving { opacity: 0; transform: translateX(12px); }
+.hub-row-main { flex: 1; min-width: 0; }
+.hub-row-title { font-size: 13px; font-weight: 600; overflow-wrap: anywhere; }
+.hub-row-meta { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
+.hub-row-meta .badge { padding: 2px 7px; font-size: 10px; }
+.badge-status   { background: var(--surface2); color: var(--muted); }
+.badge-check    { background: #1a2d1a; color: #86efac; }
+.hub-row-actions { display: flex; gap: 2px; flex-shrink: 0; }
+.hub-row-actions .btn-icon { padding: 4px 7px; font-size: 14px; }
+.hub-row-actions .done-btn:hover { color: #86efac; }
+.hub-row-actions a.btn-icon { text-decoration: none; line-height: 1.3; }
+
+.hub-list-compact .hub-row { padding: 6px 8px; }
+.hub-list-compact .hub-row-title { font-size: 12px; font-weight: 500; }
+
+/* ── Quick capture ── */
+.hub-capture { display: flex; flex-direction: column; gap: 8px; }
+.hub-capture .hub-section-head { margin-bottom: 0; }
+.hub-capture .form-input, .hub-capture .form-select { width: 100%; }
+.hub-capture-row { display: flex; gap: 8px; }
+.hub-capture-row > * { flex: 1; min-width: 0; }
+.hub-capture-row .btn { flex: 0 0 auto; }
+
+/* ── Badge ── */
+.hub-badge-today { font-size: 13px; margin-bottom: 8px; }
+.hub-badge-btn { width: 100%; margin-bottom: 12px; }
+.hub-badge-qhead { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px; }
+.hub-badge-qhead span:last-child { font-weight: 700; }
+.hub-bar { height: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 999px; overflow: hidden; }
+.hub-bar-fill { height: 100%; width: 0; background: var(--primary); transition: width 0.3s; }
+.hub-badge.ok   .hub-bar-fill { background: #22c55e; }
+.hub-badge.warn .hub-bar-fill { background: #f59e0b; }
+.hub-badge.bad  .hub-bar-fill { background: #ef4444; }
+.hub-badge-sub { font-size: 11px; color: var(--muted); margin-top: 6px; }
+
+/* ── Toast (undo) ── */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(20px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-size: 13px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+  z-index: 300;
+}
+.toast.hidden { display: none; }
+.toast-undo {
+  background: transparent;
+  border: none;
+  color: #93c5fd;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.toast-undo:hover { text-decoration: underline; }
+
+/* ── Phone ── */
+@media (max-width: 820px) {
+  .hub { padding: 12px 12px calc(32px + env(safe-area-inset-bottom)); }
+  .hub-grid { grid-template-columns: 1fr; }
+  .hub-side { order: -1; }                 /* capture + badge first on the phone */
+  .hub-greeting { font-size: 20px; }
+  .hub-stat { min-width: 0; flex: 1 1 calc(33% - 8px); padding: 8px 10px; }
+  .hub-row { padding: 10px; }
+  .hub-row-title { font-size: 15px; }
+  .hub-row-actions .btn-icon { font-size: 18px; padding: 8px 9px; }
+  .hub-capture .form-input, .hub-capture .form-select { font-size: 16px; }
+}

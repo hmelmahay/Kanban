@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Today</title>
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" href="/icon-512.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Today" />
+  <meta name="theme-color" content="#0d1117" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="today.css" />
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="topbar-left">
+      <h1>Today</h1>
+      <p class="subtitle" id="syncStatus">Loading…</p>
+    </div>
+    <div class="topbar-right">
+      <a href="index.html" class="btn btn-outline">Kanban</a>
+      <a href="clip.html" class="btn btn-outline">Clip Board</a>
+      <a href="badges.html" class="btn btn-outline">Badge Tracker</a>
+      <a href="sheets.html" class="btn btn-outline">Sheets</a>
+      <a href="outstanding.html" class="btn btn-outline">Outstanding</a>
+      <a href="poker.html" class="btn btn-outline">Poker</a>
+      <a href="dashboards.html" class="btn btn-outline">Dev</a>
+      <button id="signOutBtn" class="btn btn-outline">Sign Out</button>
+    </div>
+  </header>
+
+  <main class="hub">
+
+    <section class="hub-hero">
+      <div class="hub-hero-text">
+        <div class="hub-greeting" id="hubGreeting">Good morning</div>
+        <div class="hub-date" id="hubDate"></div>
+      </div>
+      <div class="hub-stats" id="hubStats"></div>
+    </section>
+
+    <div class="hub-grid">
+
+      <div class="hub-main">
+        <section class="hub-section" id="sec-overdue">
+          <div class="hub-section-head">
+            <h2>Overdue</h2>
+            <span class="hub-count" id="cnt-overdue">0</span>
+          </div>
+          <div class="hub-list" id="list-overdue"></div>
+        </section>
+
+        <section class="hub-section" id="sec-today">
+          <div class="hub-section-head">
+            <h2>Due today</h2>
+            <span class="hub-count" id="cnt-today">0</span>
+          </div>
+          <div class="hub-list" id="list-today"></div>
+        </section>
+
+        <section class="hub-section" id="sec-doing">
+          <div class="hub-section-head">
+            <h2>In progress</h2>
+            <span class="hub-count" id="cnt-doing">0</span>
+            <span class="hub-section-note">Doing column, across all boards</span>
+          </div>
+          <div class="hub-list" id="list-doing"></div>
+        </section>
+
+        <section class="hub-section" id="sec-week">
+          <div class="hub-section-head">
+            <h2>Coming up</h2>
+            <span class="hub-count" id="cnt-week">0</span>
+            <span class="hub-section-note">Due in the next 7 days</span>
+          </div>
+          <div class="hub-list" id="list-week"></div>
+        </section>
+      </div>
+
+      <aside class="hub-side">
+        <section class="hub-section hub-capture">
+          <div class="hub-section-head"><h2>Quick capture</h2></div>
+          <input id="captureTitle" type="text" class="form-input" placeholder="New task… (Enter to add)" autocomplete="off" />
+          <div class="hub-capture-row">
+            <select id="captureBoard" class="form-select"></select>
+            <select id="capturePriority" class="form-select">
+              <option>Critical</option>
+              <option>High</option>
+              <option selected>Medium</option>
+              <option>Low</option>
+            </select>
+          </div>
+          <div class="hub-capture-row">
+            <input id="captureDue" type="date" class="form-input" title="Due date (optional)" />
+            <button id="captureBtn" class="btn btn-primary">Add</button>
+          </div>
+        </section>
+
+        <section class="hub-section hub-badge" id="sec-badge">
+          <div class="hub-section-head">
+            <h2>Badge</h2>
+            <a href="badges.html" class="hub-link">Tracker &rarr;</a>
+          </div>
+          <div class="hub-badge-today" id="badgeToday">…</div>
+          <button id="badgeBtn" class="btn btn-primary hub-badge-btn">Badge In Today</button>
+          <div class="hub-badge-q">
+            <div class="hub-badge-qhead"><span id="badgeQLabel">Quarter</span><span id="badgeQCount">0 / 33</span></div>
+            <div class="hub-bar"><div class="hub-bar-fill" id="badgeQBar"></div></div>
+            <div class="hub-badge-sub" id="badgeQSub"></div>
+          </div>
+        </section>
+
+        <section class="hub-section hub-pending" id="sec-pending">
+          <div class="hub-section-head">
+            <h2>Awaiting approval</h2>
+            <span class="hub-count" id="cnt-pending">0</span>
+          </div>
+          <div class="hub-list hub-list-compact" id="list-pending"></div>
+        </section>
+      </aside>
+
+    </div>
+  </main>
+
+  <div id="toast" class="toast hidden">
+    <span id="toastMsg"></span>
+    <button id="toastUndo" class="toast-undo">Undo</button>
+  </div>
+
+  <!-- Login overlay -->
+  <div id="loginOverlay">
+    <div id="loginCard">
+      <h2>Today</h2>
+      <p id="loginError" class="login-error" style="display:none"></p>
+      <div class="login-field">
+        <label for="loginEmail">Email</label>
+        <input id="loginEmail" type="email" autocomplete="email" placeholder="you@example.com" />
+      </div>
+      <div class="login-field">
+        <label for="loginPassword">Password</label>
+        <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Password" />
+      </div>
+      <button id="loginBtn" class="btn btn-primary" style="width:100%">Sign In</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="today.js"></script>
+</body>
+</html>
