@@ -134,7 +134,7 @@ async function addSheet() {
   if (error) { setStatus('Add failed: ' + error.message); return; }
   $('newSheetId').value = '';
   $('newLabel').value = '';
-  setStatus('Added — it joins the next 6pm pull.');
+  setStatus('Added — it joins the next 3pm pull.');
   await loadSheets();
 }
 
