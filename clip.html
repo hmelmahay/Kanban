@@ -83,12 +83,14 @@
         <div id="drop-zone" class="drop-zone">
           <div class="drop-zone-inner">
             <span class="drop-icon">&#128206;</span>
-            <span>Drag &amp; drop files here, or</span>
+            <span>Paste a screenshot, drag &amp; drop files, or</span>
             <label class="btn btn-ghost btn-sm" style="cursor:pointer">
               Browse
               <input type="file" id="file-input" multiple style="display:none" />
             </label>
+            <button type="button" id="paste-btn" class="btn btn-ghost btn-sm">Paste Image</button>
           </div>
+          <div class="drop-zone-hint">Copy an image anywhere, then press &#8984;V / Ctrl+V on this page</div>
         </div>
         <ul id="file-list" class="file-list"></ul>
       </div>
