@@ -1096,7 +1096,7 @@ function statusAgeDays(t) {
 }
 
 // ── WIP limit on Doing ────────────────────────────────────────────────────────
-const DOING_WIP_LIMIT = 3;
+const DOING_WIP_LIMIT = 5;
 
 function applyWipLimit(n) {
   const over = n > DOING_WIP_LIMIT;
