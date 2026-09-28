@@ -54,23 +54,24 @@
       <div class="tile" id="tileMonthAvg">
         <div class="tile-label">Avg/week (this month)</div>
         <div class="tile-value"><span id="mAvg">0.0</span></div>
-        <div class="tile-sub" id="mAvgSub">target ≥ 2.5</div>
+        <div class="tile-sub" id="mAvgSub">—</div>
       </div>
       <div class="tile" id="tileQuarterAvg">
         <div class="tile-label">Avg/week (this quarter)</div>
         <div class="tile-value"><span id="qAvg">0.0</span></div>
-        <div class="tile-sub" id="qAvgSub">target ≥ 2.5</div>
+        <div class="tile-sub" id="qAvgSub">—</div>
       </div>
       <div class="tile" id="tileQuarter">
         <div class="tile-label">This Quarter (<span id="qLabel">Q?</span>)</div>
-        <div class="tile-value"><span id="qCount">0</span> / 33</div>
+        <div class="tile-value"><span id="qCount">0</span> / <span id="qTarget">—</span></div>
         <div class="tile-sub" id="qSub">—</div>
         <div class="tile-bar"><div class="tile-bar-fill" id="qBar"></div></div>
       </div>
-      <div class="tile">
-        <div class="tile-label">This Month</div>
-        <div class="tile-value"><span id="mCount">0</span></div>
+      <div class="tile" id="tileMonth">
+        <div class="tile-label">This Month (<span id="mLabel">—</span>)</div>
+        <div class="tile-value"><span id="mCount">0</span><span id="mTargetWrap"> / <span id="mTarget">—</span></span></div>
         <div class="tile-sub" id="mSub">—</div>
+        <div class="tile-bar" id="mBarWrap"><div class="tile-bar-fill" id="mBar"></div></div>
       </div>
       <div class="tile">
         <div class="tile-label">PTO used (<span id="ptoYear">?</span>)</div>
@@ -95,6 +96,7 @@
         <div class="cal-title" id="calTitle">—</div>
         <button id="calNext" class="btn btn-outline">›</button>
       </div>
+      <div class="cal-status" id="calStatus"></div>
       <div class="cal-legend">
         <span class="lg sw">Swipe</span>
         <span class="lg ns">No swipe</span>

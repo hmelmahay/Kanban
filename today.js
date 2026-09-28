@@ -6,7 +6,12 @@
 const SUPABASE_URL = 'https://sztatmknjyzzyzngvpff.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_GvPXZ8AVgix3aZ2UDS0YRQ_ktlLvMtB';
 
-const QUARTER_MIN    = 33;   // badge swipes required per quarter (mirrors badges.js)
+// Badge rule (mirrors badges.js): from Oct 1, 2026 an average of 3.5 office days a week over each
+// month and each quarter, with days off shrinking the target. Before that, 33 swipes per quarter.
+const WEEKLY_TARGET     = 3.5;
+const WEEKLY_RULE_START = new Date(2026, 9, 1);
+const EXCUSED_DAYS      = new Set(['pto', 'flex', 'float', 'holiday', 'off']);
+const QUARTER_MIN       = 33;   // old rule
 const DOING_WIP_LIMIT = 3;   // mirrors script.js
 const WEEK_AHEAD_DAYS = 7;
 const AUTO_REFRESH_MS = 60000;
@@ -352,11 +357,38 @@ function currentQuarter() {
   const q = Math.floor(now.getMonth() / 3) + 1;
   return { q, year: now.getFullYear(), start: new Date(now.getFullYear(), (q - 1) * 3, 1), end: new Date(now.getFullYear(), q * 3, 0) };
 }
-function weekdaysAfterToday(to) {
-  const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + 1);
-  let n = 0;
-  while (d <= to) { const w = d.getDay(); if (w !== 0 && w !== 6) n++; d.setDate(d.getDate() + 1); }
-  return n;
+// Swipes in [start, end] against the rule (mirrors periodStats in badges.js). Workdays are weekdays
+// that aren't days off; `left` counts today (unless already badged) and later workdays.
+function badgeStats(start, end, oldRequired) {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  let swipes = 0, workdays = 0, left = 0;
+  const d = new Date(start);
+  while (d <= end) {
+    const type = badgeDays[isoDate(d)];
+    if (type === 'swipe') swipes++;
+    const w = d.getDay();
+    if (w !== 0 && w !== 6 && !EXCUSED_DAYS.has(type)) {
+      workdays++;
+      if (d > today || (+d === +today && type !== 'swipe')) left++;
+    }
+    d.setDate(d.getDate() + 1);
+  }
+  const required = start >= WEEKLY_RULE_START ? Math.ceil(WEEKLY_TARGET * workdays / 5 - 1e-9) : oldRequired;
+  const needed = Math.max(0, required - swipes);
+  const state = required == null ? '' : needed === 0 ? 'ok' : needed > left ? 'bad' : needed > left * WEEKLY_TARGET / 5 ? 'warn' : '';
+  return { swipes, required, needed, left, state };
+}
+function renderBadgeRow(key, s, label, period) {
+  const row = $(`badge${key}Row`);
+  row.hidden = s.required == null;
+  if (row.hidden) return;
+  const left = `${s.left} workday${s.left === 1 ? '' : 's'} left`;
+  $(`badge${key}Label`).textContent = label;
+  $(`badge${key}Count`).textContent = `${s.swipes} / ${s.required}`;
+  $(`badge${key}Bar`).style.width = (s.required ? Math.min(100, s.swipes / s.required * 100) : 100) + '%';
+  $(`badge${key}Sub`).textContent = s.needed === 0 ? `Target met · ${left} in the ${period}` : `${s.needed} more needed · ${left}`;
+  row.classList.remove('ok', 'warn', 'bad');
+  if (s.state) row.classList.add(s.state);
 }
 const BADGE_LABEL = { swipe: 'Badged in', not_swipe: 'No swipe', pto: 'PTO', flex: 'Flex', float: 'Float', holiday: 'Holiday', off: 'Off' };
 
@@ -374,22 +406,19 @@ function renderBadge() {
     btn.classList.replace('btn-outline', 'btn-primary');
   }
 
-  const { q, year, end } = currentQuarter();
-  const swipes = Object.values(badgeDays).filter(t => t === 'swipe').length;
-  const needed = Math.max(0, QUARTER_MIN - swipes);
-  const left = weekdaysAfterToday(end);
-  $('badgeQLabel').textContent = `Q${q} ${year} swipes`;
-  $('badgeQCount').textContent = `${swipes} / ${QUARTER_MIN}`;
-  $('badgeQBar').style.width = Math.min(100, swipes / QUARTER_MIN * 100) + '%';
-  $('badgeQSub').textContent = needed === 0
-    ? `Target met · ${left} weekdays left in the quarter`
-    : `${needed} more needed · ${left} weekdays left`;
-  const sec = $('sec-badge');
-  sec.classList.remove('ok', 'warn', 'bad');
-  if (swipes >= QUARTER_MIN) sec.classList.add('ok');
-  else if (needed > left) sec.classList.add('bad');
-  else if (needed > left * 0.7) sec.classList.add('warn');
-  return { swipes, needed, left, state: sec.classList.contains('bad') ? 'bad' : sec.classList.contains('warn') ? 'warn' : swipes >= QUARTER_MIN ? 'ok' : '' };
+  const now = new Date();
+  const { q, year, start, end } = currentQuarter();
+  const mStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const month = badgeStats(mStart, new Date(now.getFullYear(), now.getMonth() + 1, 0), null);
+  const quarter = badgeStats(start, end, QUARTER_MIN);
+  renderBadgeRow('M', month, `${mStart.toLocaleDateString(undefined, { month: 'long' })} swipes`, 'month');
+  renderBadgeRow('Q', quarter, `Q${q} ${year} swipes`, 'quarter');
+  // Once months have a target, the stat chip shows the month, colored by the worse of the two.
+  const hasMonth = month.required != null;
+  const states = hasMonth ? [month.state, quarter.state] : [quarter.state];
+  const state = states.includes('bad') ? 'bad' : states.includes('warn') ? 'warn' : states.every(s => s === 'ok') ? 'ok' : '';
+  const shown = hasMonth ? month : quarter;
+  return { count: `${shown.swipes}/${shown.required}`, label: hasMonth ? 'Badge mo' : 'Badge qtr', state };
 }
 
 $('badgeBtn').addEventListener('click', async () => {
@@ -493,7 +522,7 @@ function render() {
     stat(doingTotal, 'Doing', doingTotal > DOING_WIP_LIMIT ? 'warn' : '', '#sec-doing') +
     stat(week.length, 'This week', '', '#sec-week') +
     stat(pending.length, 'Pending', pending.length ? 'warn' : '', 'index.html') +
-    stat(`${badge.swipes}/${QUARTER_MIN}`, 'Badge qtr', badge.state, 'badges.html');
+    stat(badge.count, badge.label, badge.state, 'badges.html');
 }
 
 // ── Refresh ───────────────────────────────────────────────────────────────────

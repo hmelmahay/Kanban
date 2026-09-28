@@ -4,7 +4,14 @@ const SUPABASE_KEY = 'sb_publishable_GvPXZ8AVgix3aZ2UDS0YRQ_ktlLvMtB';
 
 // Allotments
 const QUOTA = { pto: 20, flex: 8, float: 3 };
-const QUARTER_MIN = 33;
+
+// Office attendance. From Oct 1, 2026: an average of 3.5 office days a week, over each month
+// and over each quarter. Days off shrink the target. Earlier periods keep the old 33/quarter minimum.
+const WEEKLY_TARGET = 3.5;
+const WEEKLY_RULE_START = new Date(2026, 9, 1);
+const EXCUSED = new Set(['pto', 'flex', 'float', 'holiday', 'off']);
+const QUARTER_MIN = 33;       // old rule
+const OLD_WEEKLY_PACE = 2.5;  // old rule: ≈33 per 13-week quarter
 
 // ── State ────────────────────────────────────────────────────────────────────
 let db = null;
@@ -131,15 +138,57 @@ function countInRange(type, start, end) {
   return n;
 }
 
-function avgPerWeekSoFar(type, start, end) {
-  const totalWeekdays = weekdaysBetween(start, end);
-  if (totalWeekdays <= 0) return 0;
-  return countInRange(type, start, end) / totalWeekdays * 5;
+// Office attendance in [start, end]. Workdays are weekdays that aren't days off; under the weekly
+// rule the target is 3.5 office days per 5 workdays. `left` counts today (unless already badged)
+// and later workdays; the pace so far leaves today out until you badge in.
+function periodStats(start, end) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const s = { swipes: 0, workdays: 0, left: 0, weekly: start >= WEEKLY_RULE_START };
+  let swipesSoFar = 0, workdaysSoFar = 0;
+  const d = new Date(start);
+  while (d <= end) {
+    const rec = days[isoDate(d)];
+    const swiped = !!rec && rec.type === 'swipe';
+    const past = d < today, isToday = +d === +today;
+    if (swiped) { s.swipes++; if (past || isToday) swipesSoFar++; }
+    const dow = d.getDay();
+    if (dow !== 0 && dow !== 6 && !(rec && EXCUSED.has(rec.type))) {
+      s.workdays++;
+      if (past || (isToday && swiped)) workdaysSoFar++;
+      else s.left++;
+    }
+    d.setDate(d.getDate() + 1);
+  }
+  s.required = s.weekly ? Math.ceil(WEEKLY_TARGET * s.workdays / 5 - 1e-9) : null;
+  s.pace = workdaysSoFar ? swipesSoFar / workdaysSoFar * 5 : null;
+  return s;
 }
 
-function applyAvgColor(tile, v) {
+// Rounds down so 3.46 shows as 3.4, never as a 3.5 that still misses the target.
+const fmtAvg = v => (Math.floor(v * 10 + 1e-9) / 10).toFixed(1);
+const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
+// "X / N" tile: days still needed, workdays left, bar, and color. Warn when behind the pace
+// that finishes on target, bad when the target is out of reach.
+function renderTarget(tile, bar, sub, s, required, period) {
+  const needed = Math.max(0, required - s.swipes);
+  const left = `${plural(s.left, 'workday')} left`;
+  sub.textContent = needed === 0 ? `Target met. ${left} in ${period}.` : `${needed} more needed · ${left}`;
+  bar.style.width = (required ? Math.min(100, s.swipes / required * 100) : 100) + '%';
+  tile.classList.remove('ok', 'warn', 'bad');
+  if (needed === 0) tile.classList.add('ok');
+  else if (needed > s.left) tile.classList.add('bad');
+  else if (needed > s.left * WEEKLY_TARGET / 5) tile.classList.add('warn');
+}
+
+// Avg/week tile: pace so far against the period's weekly target.
+function renderPace(tile, valueEl, subEl, s) {
+  const target = s.weekly ? WEEKLY_TARGET : OLD_WEEKLY_PACE;
+  valueEl.textContent = s.pace == null ? '—' : fmtAvg(s.pace);
+  subEl.textContent = `so far · target ≥ ${target}`;
   tile.classList.remove('ok', 'bad');
-  tile.classList.add(v >= 2.5 ? 'ok' : 'bad');
+  if (s.pace != null) tile.classList.add(s.pace >= target ? 'ok' : 'bad');
 }
 
 // ── Render ───────────────────────────────────────────────────────────────────
@@ -180,41 +229,32 @@ function labelOf(t) {
 
 function renderTiles() {
   const today = new Date();
+  // Quarter: office days against its target, and pace so far
   const { q, year } = quarterOf(today);
   const { start, end } = quarterRange(year, q);
-  const qSwipes = countInRange('swipe', start, end);
+  const qs = periodStats(start, end);
+  const qRequired = qs.required ?? QUARTER_MIN;
   $('qLabel').textContent = `Q${q} ${year}`;
-  $('qCount').textContent = qSwipes;
-  const needed = Math.max(0, QUARTER_MIN - qSwipes);
-  // Remaining weekdays in quarter (excluding today past)
-  const remainWeekdays = weekdaysBetween(today, end, true);
-  $('qSub').textContent = needed === 0
-    ? `Target met. ${remainWeekdays} weekdays left in quarter.`
-    : `${needed} more needed · ${remainWeekdays} weekdays left`;
-  const pct = Math.min(100, (qSwipes / QUARTER_MIN) * 100);
-  $('qBar').style.width = pct + '%';
-  const qTile = $('tileQuarter');
-  qTile.classList.remove('ok', 'warn', 'bad');
-  if (qSwipes >= QUARTER_MIN) qTile.classList.add('ok');
-  else if (needed > remainWeekdays) qTile.classList.add('bad');
-  else if (needed > remainWeekdays * 0.7) qTile.classList.add('warn');
+  $('qCount').textContent = qs.swipes;
+  $('qTarget').textContent = qRequired;
+  renderTarget($('tileQuarter'), $('qBar'), $('qSub'), qs, qRequired, 'quarter');
+  renderPace($('tileQuarterAvg'), $('qAvg'), $('qAvgSub'), qs);
 
-  // Quarter avg days/week (so far)
-  const qAvg = avgPerWeekSoFar('swipe', start, end);
-  $('qAvg').textContent = qAvg.toFixed(1);
-  applyAvgColor($('tileQuarterAvg'), qAvg);
-
-  // Month count
+  // Month: same under the weekly rule; before it, months had no target of their own
   const mStart = new Date(today.getFullYear(), today.getMonth(), 1);
   const mEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-  const mSwipes = countInRange('swipe', mStart, mEnd);
-  $('mCount').textContent = mSwipes;
-  $('mSub').textContent = `≈${(QUARTER_MIN / 3).toFixed(1)}/mo pace to hit 33/qtr`;
-
-  // Month avg days/week (so far)
-  const mAvg = avgPerWeekSoFar('swipe', mStart, mEnd);
-  $('mAvg').textContent = mAvg.toFixed(1);
-  applyAvgColor($('tileMonthAvg'), mAvg);
+  const ms = periodStats(mStart, mEnd);
+  $('mLabel').textContent = mStart.toLocaleDateString(undefined, { month: 'long' });
+  $('mCount').textContent = ms.swipes;
+  $('mTargetWrap').hidden = $('mBarWrap').hidden = ms.required == null;
+  if (ms.required != null) {
+    $('mTarget').textContent = ms.required;
+    renderTarget($('tileMonth'), $('mBar'), $('mSub'), ms, ms.required, 'month');
+  } else {
+    $('tileMonth').classList.remove('ok', 'warn', 'bad');
+    $('mSub').textContent = `≈${(QUARTER_MIN / 3).toFixed(1)}/mo pace to hit ${QUARTER_MIN}/qtr`;
+  }
+  renderPace($('tileMonthAvg'), $('mAvg'), $('mAvgSub'), ms);
 
   // PTO (calendar year)
   const yStart = new Date(today.getFullYear(), 0, 1);
@@ -237,25 +277,13 @@ function renderTiles() {
   $('floatSub').textContent = `${QUOTA.float - floatUsed} days remaining`;
 }
 
-function weekdaysBetween(from, to, excludeToday = false) {
-  const start = new Date(from);
-  if (excludeToday) start.setDate(start.getDate() + 1);
-  let n = 0;
-  const d = new Date(start);
-  while (d <= to) {
-    const dow = d.getDay();
-    if (dow !== 0 && dow !== 6) n++;
-    d.setDate(d.getDate() + 1);
-  }
-  return n;
-}
-
 function renderCalendar() {
   const grid = $('calGrid');
   grid.innerHTML = '';
   const first = new Date(viewY, viewM, 1);
   const last = new Date(viewY, viewM + 1, 0);
   $('calTitle').textContent = first.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+  renderMonthStatus(first, last);
 
   ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].forEach(d => {
     const el = document.createElement('div');
@@ -291,6 +319,31 @@ function renderCalendar() {
     cell.addEventListener('click', () => openDayModal(iso));
     grid.appendChild(cell);
   }
+}
+
+// One-line result for the month shown in the calendar.
+function renderMonthStatus(first, last) {
+  const el = $('calStatus');
+  const s = periodStats(first, last);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  el.classList.remove('ok', 'bad');
+  if (first > today) {
+    el.textContent = s.weekly ? `${plural(s.required, 'office day')} needed · ${plural(s.workdays, 'workday')} after days off` : '';
+    return;
+  }
+  const done = last < today;
+  const avg = done ? (s.workdays ? s.swipes / s.workdays * 5 : null) : s.pace;
+  const avgTxt = avg == null ? '' : ` · ${fmtAvg(avg)}/week${done ? '' : ' so far'}`;
+  if (!s.weekly) {
+    el.textContent = `${plural(s.swipes, 'office day')}${avgTxt} · before the ${WEEKLY_TARGET}/week rule`;
+    return;
+  }
+  const needed = Math.max(0, s.required - s.swipes);
+  el.textContent = `${s.swipes} of ${plural(s.required, 'office day')}${avgTxt} · `
+    + (needed === 0 ? 'target met' : done ? 'missed' : `${needed} more needed`);
+  if (needed === 0) el.classList.add('ok');
+  else if (done || needed > s.left) el.classList.add('bad');
 }
 
 function renderRecent() {

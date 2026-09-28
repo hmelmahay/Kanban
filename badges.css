@@ -85,6 +85,10 @@ body { overflow: auto; }
   margin-bottom: 10px;
 }
 .cal-title { font-size: 16px; font-weight: 600; }
+.cal-status { font-size: 12px; color: var(--muted); text-align: center; margin: -4px 0 10px; }
+.cal-status:empty { display: none; }
+.cal-status.ok { color: #22c55e; }
+.cal-status.bad { color: var(--danger); }
 .cal-legend {
   display: flex;
   flex-wrap: wrap;

@@ -138,9 +138,10 @@ a.hub-stat:hover { border-color: var(--primary); }
 .hub-badge-qhead span:last-child { font-weight: 700; }
 .hub-bar { height: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 999px; overflow: hidden; }
 .hub-bar-fill { height: 100%; width: 0; background: var(--primary); transition: width 0.3s; }
-.hub-badge.ok   .hub-bar-fill { background: #22c55e; }
-.hub-badge.warn .hub-bar-fill { background: #f59e0b; }
-.hub-badge.bad  .hub-bar-fill { background: #ef4444; }
+.hub-badge-q:not([hidden]) + .hub-badge-q { margin-top: 12px; }
+.hub-badge-q.ok   .hub-bar-fill { background: #22c55e; }
+.hub-badge-q.warn .hub-bar-fill { background: #f59e0b; }
+.hub-badge-q.bad  .hub-bar-fill { background: #ef4444; }
 .hub-badge-sub { font-size: 11px; color: var(--muted); margin-top: 6px; }
 
 /* ── Toast (undo) ── */
