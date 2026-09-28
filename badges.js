@@ -292,14 +292,15 @@ function renderCalendar() {
     if (rec) cell.classList.add('t-' + rec.type);
     if (iso === todayISO) cell.classList.add('today');
     if (d.getDay() === 0 || d.getDay() === 6) cell.classList.add('weekend');
-    cell.innerHTML = `<div class="cal-daynum">${day}</div>` + (rec ? `<div class="cal-tag">${labelOf(rec.type)}</div>` : '');
+    cell.innerHTML = `<div class="cal-daynum">${day}</div>`;
     if (rec && rec.notes) {
       const n = document.createElement('div');
       n.className = 'cal-note';
-      n.textContent = '📝';
+      n.textContent = rec.notes;
       n.title = rec.notes;
       cell.appendChild(n);
     }
+    if (rec) cell.insertAdjacentHTML('beforeend', `<div class="cal-tag">${labelOf(rec.type)}</div>`);
     cell.addEventListener('click', () => openDayModal(iso));
     grid.appendChild(cell);
   }

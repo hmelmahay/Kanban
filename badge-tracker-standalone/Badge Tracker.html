@@ -1293,7 +1293,7 @@ body { overflow: auto; }
 .cal-cell.today { outline: 2px solid var(--primary); }
 .cal-cell.weekend { opacity: .75; }
 .cal-daynum { font-weight: 600; }
-.cal-tag { font-size: 10px; text-transform: uppercase; letter-spacing: .3px; }
+.cal-tag { font-size: 10px; text-transform: uppercase; letter-spacing: .3px; margin-top: auto; }
 .cal-cell.t-swipe { background: #14532d; }
 .cal-cell.t-not_swipe { background: #3f3f46; }
 .cal-cell.t-pto { background: #1e3a8a; }
@@ -1302,11 +1302,15 @@ body { overflow: auto; }
 .cal-cell.t-holiday { background: #0f766e; }
 .cal-cell.t-off { background: #27272a; }
 .cal-note {
-  position: absolute;
-  bottom: 2px;
-  right: 4px;
-  font-size: 9px;
-  opacity: .7;
+  margin-top: 2px;
+  font-size: 10px;
+  line-height: 1.25;
+  opacity: .85;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
 }
 
 /* Recent */
@@ -1392,6 +1396,7 @@ body { overflow: auto; }
 @media (max-width: 640px) {
   .cal-cell { min-height: 44px; font-size: 10px; padding: 2px 4px; }
   .cal-tag { display: none; }
+  .cal-note { font-size: 9px; -webkit-line-clamp: 2; }
 }
 
 /* ── Mobile: collapse the 7-across tile row so it doesn't overflow the phone ──── */
@@ -1824,14 +1829,15 @@ function renderCalendar() {
     if (rec) cell.classList.add('t-' + rec.type);
     if (iso === todayISO) cell.classList.add('today');
     if (d.getDay() === 0 || d.getDay() === 6) cell.classList.add('weekend');
-    cell.innerHTML = `<div class="cal-daynum">${day}</div>` + (rec ? `<div class="cal-tag">${labelOf(rec.type)}</div>` : '');
+    cell.innerHTML = `<div class="cal-daynum">${day}</div>`;
     if (rec && rec.notes) {
       const n = document.createElement('div');
       n.className = 'cal-note';
-      n.textContent = '📝';
+      n.textContent = rec.notes;
       n.title = rec.notes;
       cell.appendChild(n);
     }
+    if (rec) cell.insertAdjacentHTML('beforeend', `<div class="cal-tag">${labelOf(rec.type)}</div>`);
     cell.addEventListener('click', () => openDayModal(iso));
     grid.appendChild(cell);
   }
