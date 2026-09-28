@@ -5,13 +5,13 @@ const SUPABASE_KEY = 'sb_publishable_GvPXZ8AVgix3aZ2UDS0YRQ_ktlLvMtB';
 // Allotments
 const QUOTA = { pto: 20, flex: 8, float: 3 };
 
-// Office attendance. From Oct 1, 2026: an average of 3.5 office days a week, over each month
-// and over each quarter. Days off shrink the target. Earlier periods keep the old 33/quarter minimum.
+// Office attendance: an average of 3.5 office days a week, over each month and over each quarter,
+// in effect from Sep 28, 2026. It covers every month and quarter still open then (so September
+// and Q3 2026 count); months that ended earlier fell under the old 33/quarter minimum.
+// Days off shrink the target.
 const WEEKLY_TARGET = 3.5;
-const WEEKLY_RULE_START = new Date(2026, 9, 1);
+const WEEKLY_RULE_START = new Date(2026, 8, 28);
 const EXCUSED = new Set(['pto', 'flex', 'float', 'holiday', 'off']);
-const QUARTER_MIN = 33;       // old rule
-const OLD_WEEKLY_PACE = 2.5;  // old rule: ≈33 per 13-week quarter
 
 // ── State ────────────────────────────────────────────────────────────────────
 let db = null;
@@ -144,7 +144,7 @@ function countInRange(type, start, end) {
 function periodStats(start, end) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const s = { swipes: 0, workdays: 0, left: 0, weekly: start >= WEEKLY_RULE_START };
+  const s = { swipes: 0, workdays: 0, left: 0, weekly: end >= WEEKLY_RULE_START };
   let swipesSoFar = 0, workdaysSoFar = 0;
   const d = new Date(start);
   while (d <= end) {
@@ -171,24 +171,23 @@ const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
 // "X / N" tile: days still needed, workdays left, bar, and color. Warn when behind the pace
 // that finishes on target, bad when the target is out of reach.
-function renderTarget(tile, bar, sub, s, required, period) {
-  const needed = Math.max(0, required - s.swipes);
+function renderTarget(tile, bar, sub, s, period) {
+  const needed = Math.max(0, s.required - s.swipes);
   const left = `${plural(s.left, 'workday')} left`;
   sub.textContent = needed === 0 ? `Target met. ${left} in ${period}.` : `${needed} more needed · ${left}`;
-  bar.style.width = (required ? Math.min(100, s.swipes / required * 100) : 100) + '%';
+  bar.style.width = (s.required ? Math.min(100, s.swipes / s.required * 100) : 100) + '%';
   tile.classList.remove('ok', 'warn', 'bad');
   if (needed === 0) tile.classList.add('ok');
   else if (needed > s.left) tile.classList.add('bad');
   else if (needed > s.left * WEEKLY_TARGET / 5) tile.classList.add('warn');
 }
 
-// Avg/week tile: pace so far against the period's weekly target.
+// Avg/week tile: pace so far against the weekly target.
 function renderPace(tile, valueEl, subEl, s) {
-  const target = s.weekly ? WEEKLY_TARGET : OLD_WEEKLY_PACE;
   valueEl.textContent = s.pace == null ? '—' : fmtAvg(s.pace);
-  subEl.textContent = `so far · target ≥ ${target}`;
+  subEl.textContent = `so far · target ≥ ${WEEKLY_TARGET}`;
   tile.classList.remove('ok', 'bad');
-  if (s.pace != null) tile.classList.add(s.pace >= target ? 'ok' : 'bad');
+  if (s.pace != null) tile.classList.add(s.pace >= WEEKLY_TARGET ? 'ok' : 'bad');
 }
 
 // ── Render ───────────────────────────────────────────────────────────────────
@@ -233,27 +232,20 @@ function renderTiles() {
   const { q, year } = quarterOf(today);
   const { start, end } = quarterRange(year, q);
   const qs = periodStats(start, end);
-  const qRequired = qs.required ?? QUARTER_MIN;
   $('qLabel').textContent = `Q${q} ${year}`;
   $('qCount').textContent = qs.swipes;
-  $('qTarget').textContent = qRequired;
-  renderTarget($('tileQuarter'), $('qBar'), $('qSub'), qs, qRequired, 'quarter');
+  $('qTarget').textContent = qs.required;
+  renderTarget($('tileQuarter'), $('qBar'), $('qSub'), qs, 'quarter');
   renderPace($('tileQuarterAvg'), $('qAvg'), $('qAvgSub'), qs);
 
-  // Month: same under the weekly rule; before it, months had no target of their own
+  // Month: same
   const mStart = new Date(today.getFullYear(), today.getMonth(), 1);
   const mEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
   const ms = periodStats(mStart, mEnd);
   $('mLabel').textContent = mStart.toLocaleDateString(undefined, { month: 'long' });
   $('mCount').textContent = ms.swipes;
-  $('mTargetWrap').hidden = $('mBarWrap').hidden = ms.required == null;
-  if (ms.required != null) {
-    $('mTarget').textContent = ms.required;
-    renderTarget($('tileMonth'), $('mBar'), $('mSub'), ms, ms.required, 'month');
-  } else {
-    $('tileMonth').classList.remove('ok', 'warn', 'bad');
-    $('mSub').textContent = `≈${(QUARTER_MIN / 3).toFixed(1)}/mo pace to hit ${QUARTER_MIN}/qtr`;
-  }
+  $('mTarget').textContent = ms.required;
+  renderTarget($('tileMonth'), $('mBar'), $('mSub'), ms, 'month');
   renderPace($('tileMonthAvg'), $('mAvg'), $('mAvgSub'), ms);
 
   // PTO (calendar year)
