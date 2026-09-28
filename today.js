@@ -6,9 +6,10 @@
 const SUPABASE_URL = 'https://sztatmknjyzzyzngvpff.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_GvPXZ8AVgix3aZ2UDS0YRQ_ktlLvMtB';
 
-// Badge rule (mirrors badges.js): an average of 3.5 office days a week over each month and each
-// quarter, in effect from Sep 28, 2026, with days off shrinking the target.
-const WEEKLY_TARGET = 3.5;
+// Badge rule (mirrors badges.js): an average of N office days a week over each month and each
+// quarter, in effect from Sep 28, 2026, with days off shrinking the target. N is the weekly
+// target set on the Badge Tracker page (3.5 unless changed there).
+const BADGE_SETTINGS_KEY = 'badge_settings_v1';   // written by badges.js
 const EXCUSED_DAYS  = new Set(['pto', 'flex', 'float', 'holiday', 'off']);
 const DOING_WIP_LIMIT = 3;   // mirrors script.js
 const WEEK_AHEAD_DAYS = 7;
@@ -371,10 +372,18 @@ function badgeStats(start, end) {
     }
     d.setDate(d.getDate() + 1);
   }
-  const required = Math.ceil(WEEKLY_TARGET * workdays / 5 - 1e-9);
+  const target = weeklyTarget();
+  const required = Math.ceil(target * workdays / 5 - 1e-9);
   const needed = Math.max(0, required - swipes);
-  const state = needed === 0 ? 'ok' : needed > left ? 'bad' : needed > left * WEEKLY_TARGET / 5 ? 'warn' : '';
+  const state = needed === 0 ? 'ok' : needed > left ? 'bad' : needed > left * target / 5 ? 'warn' : '';
   return { swipes, required, needed, left, state };
+}
+function weeklyTarget() {
+  try {
+    const w = (JSON.parse(localStorage.getItem(BADGE_SETTINGS_KEY)) || {}).weekly;
+    if (Number.isFinite(w) && w > 0) return w;
+  } catch (e) { /* storage unavailable */ }
+  return 3.5;
 }
 function renderBadgeRow(key, s, label, period) {
   const row = $(`badge${key}Row`);

@@ -7,12 +7,14 @@ body { overflow: auto; }
   grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
   grid-template-areas:
     "hero hero"
+    "settings settings"
     "tiles tiles"
     "cal recent";
   gap: 16px;
   align-items: start;
 }
 .hero { grid-area: hero; }
+.settings { grid-area: settings; }
 .tiles { grid-area: tiles; }
 .cal-section { grid-area: cal; }
 .report { grid-area: recent; }
@@ -23,6 +25,7 @@ body { overflow: auto; }
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
       "hero"
+      "settings"
       "tiles"
       "cal"
       "recent";
@@ -44,6 +47,31 @@ body { overflow: auto; }
 .hero-status { color: var(--muted); font-size: 13px; margin-top: 4px; }
 .hero-actions { display: flex; gap: 8px; }
 .btn-big { font-size: 15px; padding: 12px 20px; font-weight: 600; }
+
+/* My targets */
+.settings {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 16px;
+  font-size: 13px;
+}
+.settings-title { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.settings label { display: flex; align-items: center; gap: 6px; color: var(--muted); }
+.settings input {
+  width: 64px;
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border2);
+  border-radius: 4px;
+  padding: 4px 6px;
+  font-size: 14px;
+}
+.settings-actions { margin-left: auto; display: flex; gap: 6px; }
 
 /* Tiles */
 .tiles {
@@ -74,7 +102,7 @@ body { overflow: auto; }
 .avg-n { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .avg-n.ok { color: #22c55e; }
 .avg-n.bad { color: var(--danger); }
-.avg-cap { font-size: 11px; color: var(--muted); }
+.avg-cap { font-size: 11px; line-height: 1.25; color: var(--muted); }
 
 /* Calendar */
 .cal-section {
@@ -236,6 +264,7 @@ body { overflow: auto; }
   .recent-row { grid-template-columns: 88px 76px 1fr; font-size: 12px; }
   .modal-card { margin: 16px; min-width: 0; width: 100%; max-width: 420px; }
   .modal-row select, .modal-row input { font-size: 16px; padding: 11px 12px; }
+  .settings input { font-size: 16px; }
   .modal-actions .btn { flex: 1; }
 }
 @media (max-width: 640px) {

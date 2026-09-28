@@ -4,8 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Badge Tracker · Steve's Center of Excellence</title>
+  <!-- site-only: parts between these markers are left out of the shareable copy (badge-tracker-standalone/build.py) -->
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <link rel="icon" type="image/png" href="/icon-512.png" />
+  <!-- /site-only -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -21,6 +23,7 @@
       <h1>Badge Tracker</h1>
       <p class="subtitle" id="syncStatus">Stay off the report</p>
     </div>
+    <!-- site-only -->
     <div class="topbar-right">
       <a href="index.html" class="btn btn-outline">Kanban</a>
       <a href="today.html" class="btn btn-outline">Today</a>
@@ -35,6 +38,7 @@
       <a href="dashboards.html" class="btn btn-outline">Dev</a>
       <button id="signOutBtn" class="btn btn-outline">Sign Out</button>
     </div>
+    <!-- /site-only -->
   </header>
 
   <main id="app" class="badge-main">
@@ -50,17 +54,25 @@
       </div>
     </section>
 
+    <section class="settings" aria-label="My targets">
+      <span class="settings-title">My targets</span>
+      <label>Office days per week <input id="setWeekly" type="number" min="0.5" max="5" step="0.5" inputmode="decimal" /></label>
+      <label>PTO days per year <input id="setPto" type="number" min="0" max="365" step="1" inputmode="decimal" /></label>
+      <label>Flex days per year <input id="setFlex" type="number" min="0" max="365" step="1" inputmode="decimal" /></label>
+      <label>Float days per year <input id="setFloat" type="number" min="0" max="365" step="1" inputmode="decimal" /></label>
+    </section>
+
     <section class="tiles">
       <div class="tile" id="tileMonthAvg">
         <div class="tile-label">Avg/week (this month)</div>
-        <div class="avg-row" title="PTO, flex, float, holidays and weekday Off days are left out"><span class="avg-n" id="mAvg">—</span><span class="avg-cap">time off excused</span></div>
-        <div class="avg-row" title="Every weekday counts, even days off"><span class="avg-n" id="mAvgRaw">—</span><span class="avg-cap">not excused</span></div>
+        <div class="avg-row" title="PTO, flex, float, holidays and weekday Off days are left out of the average"><span class="avg-n" id="mAvg">—</span><span class="avg-cap">PTO/holidays left out</span></div>
+        <div class="avg-row" title="PTO, flex, float, holidays and weekday Off days count as days you weren't in"><span class="avg-n" id="mAvgRaw">—</span><span class="avg-cap">PTO/holidays count as missed</span></div>
         <div class="tile-sub" id="mAvgSub">—</div>
       </div>
       <div class="tile" id="tileQuarterAvg">
         <div class="tile-label">Avg/week (this quarter)</div>
-        <div class="avg-row" title="PTO, flex, float, holidays and weekday Off days are left out"><span class="avg-n" id="qAvg">—</span><span class="avg-cap">time off excused</span></div>
-        <div class="avg-row" title="Every weekday counts, even days off"><span class="avg-n" id="qAvgRaw">—</span><span class="avg-cap">not excused</span></div>
+        <div class="avg-row" title="PTO, flex, float, holidays and weekday Off days are left out of the average"><span class="avg-n" id="qAvg">—</span><span class="avg-cap">PTO/holidays left out</span></div>
+        <div class="avg-row" title="PTO, flex, float, holidays and weekday Off days count as days you weren't in"><span class="avg-n" id="qAvgRaw">—</span><span class="avg-cap">PTO/holidays count as missed</span></div>
         <div class="tile-sub" id="qAvgSub">—</div>
       </div>
       <div class="tile" id="tileQuarter">
@@ -77,17 +89,17 @@
       </div>
       <div class="tile">
         <div class="tile-label">PTO used (<span id="ptoYear">?</span>)</div>
-        <div class="tile-value"><span id="ptoUsed">0</span> / 20</div>
+        <div class="tile-value"><span id="ptoUsed">0</span> / <span id="ptoQuota">—</span></div>
         <div class="tile-sub" id="ptoSub">—</div>
       </div>
       <div class="tile">
         <div class="tile-label">Flex used</div>
-        <div class="tile-value"><span id="flexUsed">0</span> / 8</div>
+        <div class="tile-value"><span id="flexUsed">0</span> / <span id="flexQuota">—</span></div>
         <div class="tile-sub" id="flexSub">—</div>
       </div>
       <div class="tile">
         <div class="tile-label">Float used (<span id="floatYear">?</span>)</div>
-        <div class="tile-value"><span id="floatUsed">0</span> / 3</div>
+        <div class="tile-value"><span id="floatUsed">0</span> / <span id="floatQuota">—</span></div>
         <div class="tile-sub" id="floatSub">—</div>
       </div>
     </section>
@@ -145,6 +157,7 @@
     </div>
   </div>
 
+  <!-- site-only -->
   <!-- Login -->
   <div id="loginOverlay">
     <div id="loginCard">
@@ -161,8 +174,12 @@
       <button id="loginBtn" class="btn btn-primary" style="width:100%">Sign In</button>
     </div>
   </div>
+  <!-- /site-only -->
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="badges.js"></script>
+  <!-- site-only -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="badges-supabase.js"></script>
+  <!-- /site-only -->
 </body>
 </html>

@@ -1,29 +1,32 @@
-Badge Tracker — Standalone Local Version
-========================================
+Badge Tracker
+=============
 
-To use:
-1. Unzip this folder anywhere on your PC.
-2. Double-click badges.html. It opens in your default browser. No
-   internet connection or account is required.
-3. Click "Badge In Today" each day you swipe into the office, or
-   "Mark today as…" to log PTO / Flex / Float / Holiday / etc.
+A one-file tracker for your in-office days. No account, no internet, no install.
 
-Data is saved automatically to your browser's localStorage. That means:
-- The data lives only in the browser you opened the file with. If you
-  open it in Chrome, you won't see entries you logged in Firefox.
-- Clearing browser data ("cookies and site data") will wipe it. Keep
-  a backup if that matters (you can just copy the folder somewhere safe;
-  the data file lives inside the browser, not in this folder).
+Getting started
+1. Save "Badge Tracker.html" somewhere you'll find it (Documents, Desktop or OneDrive).
+2. Double-click it. It opens in your browser; bookmark it if you like.
+3. Fill in "My targets" at the top: the office days per week you need (3.5 unless yours
+   differs) and your PTO, flex and float allowances.
+4. Starting partway through a quarter? Click your earlier days on the calendar and mark your
+   office days (Swipe) and days off, so this month's and quarter's numbers are right.
+Works best in Chrome or Edge.
 
-Customizing your allotments:
-Open badges.js in any text editor and change the values near the top:
+Every day
+- Press "Badge In Today" when you're in the office.
+- Use "Mark today as…", or click any calendar day, for PTO, flex, float, holidays or other
+  days off. Days off lower that month's and quarter's target.
 
-  const QUOTA = { pto: 20, flex: 8, float: 3 };
-  const QUARTER_MIN = 33;
+Reading the tiles
+- This Month / This Quarter: office days so far against what you need, how many more, and the
+  workdays left. Amber means you're behind pace; red means the target can't be reached anymore.
+- Avg/week: your pace so far, once with PTO/holidays left out and once with them counted as
+  missed days.
 
-Tiles at a glance:
-- Avg/week (this month) — green if >= 2.5, red below.
-- Avg/week (this quarter) — same threshold.
-- This Quarter — count vs. quarterly target.
-- This Month — raw count for the calendar month.
-- PTO / Flex / Float — usage vs. allotment.
+Your data
+- Everything is saved in this browser on this computer. Nothing is sent anywhere.
+- Open the file in the same browser each time; a different browser or a private window starts
+  empty.
+- Clearing the browser's site data erases it, so press "Back up" now and then. It saves a .json
+  file you can keep in OneDrive or Documents. "Restore" loads a backup, for example on a new
+  laptop.

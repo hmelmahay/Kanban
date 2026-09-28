@@ -1,20 +1,30 @@
-// ── Supabase config ───────────────────────────────────────────────────────────
-const SUPABASE_URL = 'https://sztatmknjyzzyzngvpff.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_GvPXZ8AVgix3aZ2UDS0YRQ_ktlLvMtB';
+// Badge Tracker: office days against a weekly-average target, plus PTO / Flex / Float usage.
+// Shared by the site page, where badges-supabase.js keeps entries in Supabase, and by the
+// shareable single-file copy (badge-tracker-standalone/), where local-storage.js keeps them in
+// the browser. Either one calls startTracker(storage) with { load, save }.
 
-// Allotments
-const QUOTA = { pto: 20, flex: 8, float: 3 };
-
-// Office attendance: an average of 3.5 office days a week, over each month and over each quarter,
-// in effect from Sep 28, 2026. It covers every month and quarter still open then (so September
-// and Q3 2026 count); months that ended earlier fell under the old 33/quarter minimum.
-// Days off shrink the target.
-const WEEKLY_TARGET = 3.5;
+// Office attendance: an average of settings.weekly office days a week (3.5 unless changed on
+// screen), over each month and over each quarter, in effect from Sep 28, 2026. It covers every
+// month and quarter still open then (so September and Q3 2026 count); months that ended earlier
+// fell under the old 33/quarter minimum. Days off shrink the target.
 const WEEKLY_RULE_START = new Date(2026, 8, 28);
 const EXCUSED = new Set(['pto', 'flex', 'float', 'holiday', 'off']);
 
+// Weekly target and yearly allotments, set on screen and kept in this browser.
+const SETTINGS_KEY = 'badge_settings_v1';
+const DEFAULT_SETTINGS = { weekly: 3.5, pto: 20, flex: 8, float: 3 };
+const SETTING_FIELDS = {   // setting: [input id, min, max]
+  weekly: ['setWeekly', 0.5, 5],
+  pto: ['setPto', 0, 365],
+  flex: ['setFlex', 0, 365],
+  float: ['setFloat', 0, 365]
+};
+
+const DAY_LABELS = { swipe: 'Swipe', not_swipe: 'No swipe', pto: 'PTO', flex: 'Flex', float: 'Float', holiday: 'Holiday', off: 'Off' };
+
 // ── State ────────────────────────────────────────────────────────────────────
-let db = null;
+let storage = null;     // { load, save } handed to startTracker
+let settings = loadSettings();
 let days = {};          // { 'YYYY-MM-DD': {type, notes} }
 let viewY, viewM;       // calendar view year/month (0-indexed month)
 let editingDate = null;
@@ -25,83 +35,50 @@ const isoDate = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDat
 const parseISO = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
 const setStatus = msg => { $('syncStatus').textContent = msg; };
 
-// ── Auth ─────────────────────────────────────────────────────────────────────
-function showApp() { $('loginOverlay').classList.add('hidden'); }
-function showLogin(msg) {
-  $('loginOverlay').classList.remove('hidden');
-  const err = $('loginError');
-  if (msg) { err.textContent = msg; err.style.display = 'block'; }
-  else { err.style.display = 'none'; }
-}
-
-$('loginBtn').addEventListener('click', async () => {
-  const btn = $('loginBtn');
-  const email = $('loginEmail').value.trim();
-  const password = $('loginPassword').value;
-  if (!email || !password) { showLogin('Enter email and password.'); return; }
-  btn.disabled = true; btn.textContent = 'Signing in…';
-  const { error } = await db.auth.signInWithPassword({ email, password });
-  btn.disabled = false; btn.textContent = 'Sign In';
-  if (error) { showLogin(error.message); return; }
-  showApp();
-  await boot();
-});
-$('loginPassword').addEventListener('keydown', e => { if (e.key === 'Enter') $('loginBtn').click(); });
-$('signOutBtn').addEventListener('click', async () => { await db.auth.signOut(); showLogin(); });
-
-async function initSupabase() {
-  try {
-    db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    const { data: { session } } = await db.auth.getSession();
-    if (!session) { showLogin(); return false; }
-    showApp();
-    return true;
-  } catch (e) {
-    setStatus('Supabase unavailable');
-    return false;
+// ── Settings ─────────────────────────────────────────────────────────────────
+function loadSettings() {
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}; } catch (e) { /* storage unavailable */ }
+  const s = { ...DEFAULT_SETTINGS };
+  for (const [k, [, min, max]] of Object.entries(SETTING_FIELDS)) {
+    if (Number.isFinite(saved[k]) && saved[k] >= min && saved[k] <= max) s[k] = saved[k];
   }
+  return s;
+}
+function saveSettings() {
+  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) { /* storage unavailable */ }
+}
+function renderSettings() {
+  for (const [k, [id]] of Object.entries(SETTING_FIELDS)) $(id).value = settings[k];
+}
+for (const [k, [id, min, max]] of Object.entries(SETTING_FIELDS)) {
+  $(id).addEventListener('change', () => {
+    const v = parseFloat($(id).value);
+    if (Number.isFinite(v) && v >= min && v <= max) {
+      settings[k] = Math.round(v * 100) / 100;
+      saveSettings();
+    }
+    if (storage) render();   // also puts back the saved value after an out-of-range entry
+    else renderSettings();
+  });
 }
 
 // ── Data ─────────────────────────────────────────────────────────────────────
-async function loadDays() {
-  const { data, error } = await db.from('badge_days').select('day, type, notes').order('day');
-  if (error) { setStatus('Load error: ' + error.message); return; }
-  days = {};
-  for (const r of data) days[r.day] = { type: r.type, notes: r.notes };
-  setStatus(`Synced ${data.length} days`);
-}
-
-async function autofillFridays() {
-  // Fill every Friday from 2025-01-01 through today (+90 days lookahead) with 'not_swipe' if no entry exists.
-  const start = new Date(2025, 0, 1);
-  const end = new Date();
-  end.setDate(end.getDate() + 90);
-  const rows = [];
-  const d = new Date(start);
-  while (d <= end) {
-    if (d.getDay() === 5) {
-      const iso = isoDate(d);
-      if (!days[iso]) rows.push({ day: iso, type: 'not_swipe', notes: null });
-    }
-    d.setDate(d.getDate() + 1);
-  }
-  if (!rows.length) return;
-  const { error } = await db.from('badge_days').upsert(rows, { onConflict: 'day', ignoreDuplicates: true });
-  if (error) { console.warn('Friday autofill failed:', error.message); return; }
-  for (const r of rows) days[r.day] = { type: r.type, notes: r.notes };
-  setStatus(`Synced ${Object.keys(days).length} days (autofilled ${rows.length} Fridays)`);
+// Called by the storage script once entries can be read (on the site, after sign-in).
+async function startTracker(s) {
+  storage = s;
+  const today = new Date();
+  viewY = today.getFullYear();
+  viewM = today.getMonth();
+  days = await storage.load();
+  render();
 }
 
 async function upsertDay(date, type, notes) {
-  if (!type) {
-    const { error } = await db.from('badge_days').delete().eq('day', date);
-    if (error) { alert('Delete failed: ' + error.message); return; }
-    delete days[date];
-  } else {
-    const { error } = await db.from('badge_days').upsert({ day: date, type, notes: notes || null });
-    if (error) { alert('Save failed: ' + error.message); return; }
-    days[date] = { type, notes: notes || null };
-  }
+  notes = notes || null;
+  if (!(await storage.save(date, type, notes))) return;
+  if (type) days[date] = { type, notes };
+  else delete days[date];
   render();
 }
 
@@ -139,9 +116,9 @@ function countInRange(type, start, end) {
 }
 
 // Office attendance in [start, end]. Workdays are weekdays that aren't days off; under the weekly
-// rule the target is 3.5 office days per 5 workdays. `left` counts today (unless already badged)
-// and later workdays. The pace so far leaves today out until you badge in: `pace` excuses days
-// off, `rawPace` counts every weekday.
+// rule the target is settings.weekly office days per 5 workdays. `left` counts today (unless
+// already badged) and later workdays. The pace so far leaves today out until you badge in:
+// `pace` leaves days off out, `rawPace` counts them as missed.
 function periodStats(start, end) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -165,7 +142,7 @@ function periodStats(start, end) {
     }
     d.setDate(d.getDate() + 1);
   }
-  s.required = s.weekly ? Math.ceil(WEEKLY_TARGET * s.workdays / 5 - 1e-9) : null;
+  s.required = s.weekly ? Math.ceil(settings.weekly * s.workdays / 5 - 1e-9) : null;
   s.pace = workdaysSoFar ? swipesSoFar / workdaysSoFar * 5 : null;
   s.rawPace = weekdaysSoFar ? swipesSoFar / weekdaysSoFar * 5 : null;
   return s;
@@ -185,24 +162,25 @@ function renderTarget(tile, bar, sub, s, period) {
   tile.classList.remove('ok', 'warn', 'bad');
   if (needed === 0) tile.classList.add('ok');
   else if (needed > s.left) tile.classList.add('bad');
-  else if (needed > s.left * WEEKLY_TARGET / 5) tile.classList.add('warn');
+  else if (needed > s.left * settings.weekly / 5) tile.classList.add('warn');
 }
 
-// Avg/week tile: pace so far against the weekly target, once with time off excused and once
-// with every weekday counted.
+// Avg/week tile: pace so far against the weekly target, once with days off left out and once
+// with them counted as missed.
 function renderPace(valueEl, rawEl, subEl, s) {
   setPace(valueEl, s.pace);
   setPace(rawEl, s.rawPace);
-  subEl.textContent = `so far · target ≥ ${WEEKLY_TARGET}`;
+  subEl.textContent = `so far · target ≥ ${settings.weekly}`;
 }
 function setPace(el, v) {
   el.textContent = v == null ? '—' : fmtAvg(v);
   el.classList.remove('ok', 'bad');
-  if (v != null) el.classList.add(v >= WEEKLY_TARGET ? 'ok' : 'bad');
+  if (v != null) el.classList.add(v >= settings.weekly ? 'ok' : 'bad');
 }
 
 // ── Render ───────────────────────────────────────────────────────────────────
 function render() {
+  renderSettings();
   renderHero();
   renderTiles();
   renderCalendar();
@@ -234,7 +212,7 @@ function renderHero() {
 }
 
 function labelOf(t) {
-  return { swipe: 'Swipe', not_swipe: 'No swipe', pto: 'PTO', flex: 'Flex', float: 'Float', holiday: 'Holiday', off: 'Off' }[t] || t;
+  return DAY_LABELS[t] || t;
 }
 
 function renderTiles() {
@@ -265,19 +243,22 @@ function renderTiles() {
   $('ptoYear').textContent = today.getFullYear();
   const ptoUsed = countInRange('pto', yStart, yEnd);
   $('ptoUsed').textContent = ptoUsed;
-  $('ptoSub').textContent = `${QUOTA.pto - ptoUsed} days remaining`;
+  $('ptoQuota').textContent = settings.pto;
+  $('ptoSub').textContent = `${settings.pto - ptoUsed} days remaining`;
 
   // Flex (Feb 20 - Feb 19)
   const fy = flexYearOf(today);
   const flexUsed = countInRange('flex', fy.start, fy.end);
   $('flexUsed').textContent = flexUsed;
-  $('flexSub').textContent = `${fy.label} · ${QUOTA.flex - flexUsed} left`;
+  $('flexQuota').textContent = settings.flex;
+  $('flexSub').textContent = `${fy.label} · ${settings.flex - flexUsed} left`;
 
   // Float (calendar year)
   $('floatYear').textContent = today.getFullYear();
   const floatUsed = countInRange('float', yStart, yEnd);
   $('floatUsed').textContent = floatUsed;
-  $('floatSub').textContent = `${QUOTA.float - floatUsed} days remaining`;
+  $('floatQuota').textContent = settings.float;
+  $('floatSub').textContent = `${settings.float - floatUsed} days remaining`;
 }
 
 function renderCalendar() {
@@ -339,7 +320,7 @@ function renderMonthStatus(first, last) {
   const avg = done ? (s.workdays ? s.swipes / s.workdays * 5 : null) : s.pace;
   const avgTxt = avg == null ? '' : ` · ${fmtAvg(avg)}/week${done ? '' : ' so far'}`;
   if (!s.weekly) {
-    el.textContent = `${plural(s.swipes, 'office day')}${avgTxt} · before the ${WEEKLY_TARGET}/week rule`;
+    el.textContent = `${plural(s.swipes, 'office day')}${avgTxt} · before the ${settings.weekly}/week rule`;
     return;
   }
   const needed = Math.max(0, s.required - s.swipes);
@@ -395,18 +376,3 @@ $('swipeInBtn').addEventListener('click', async () => {
 $('markTodayBtn').addEventListener('click', () => openDayModal(isoDate(new Date())));
 $('calPrev').addEventListener('click', () => { viewM--; if (viewM < 0) { viewM = 11; viewY--; } renderCalendar(); });
 $('calNext').addEventListener('click', () => { viewM++; if (viewM > 11) { viewM = 0; viewY++; } renderCalendar(); });
-
-// ── Boot ─────────────────────────────────────────────────────────────────────
-async function boot() {
-  const today = new Date();
-  viewY = today.getFullYear();
-  viewM = today.getMonth();
-  await loadDays();
-  await autofillFridays();
-  render();
-}
-
-(async () => {
-  const ok = await initSupabase();
-  if (ok) await boot();
-})();
