@@ -70,6 +70,11 @@ body { overflow: auto; }
 .tile.bad .tile-bar-fill { background: var(--danger); }
 .tile.bad .tile-value { color: var(--danger); }
 .tile.ok .tile-value { color: #22c55e; }
+.avg-row { display: flex; align-items: baseline; gap: 8px; }
+.avg-n { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.avg-n.ok { color: #22c55e; }
+.avg-n.bad { color: var(--danger); }
+.avg-cap { font-size: 11px; color: var(--muted); }
 
 /* Calendar */
 .cal-section {

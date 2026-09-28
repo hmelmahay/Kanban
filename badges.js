@@ -140,28 +140,34 @@ function countInRange(type, start, end) {
 
 // Office attendance in [start, end]. Workdays are weekdays that aren't days off; under the weekly
 // rule the target is 3.5 office days per 5 workdays. `left` counts today (unless already badged)
-// and later workdays; the pace so far leaves today out until you badge in.
+// and later workdays. The pace so far leaves today out until you badge in: `pace` excuses days
+// off, `rawPace` counts every weekday.
 function periodStats(start, end) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const s = { swipes: 0, workdays: 0, left: 0, weekly: end >= WEEKLY_RULE_START };
-  let swipesSoFar = 0, workdaysSoFar = 0;
+  let swipesSoFar = 0, workdaysSoFar = 0, weekdaysSoFar = 0;
   const d = new Date(start);
   while (d <= end) {
     const rec = days[isoDate(d)];
     const swiped = !!rec && rec.type === 'swipe';
     const past = d < today, isToday = +d === +today;
+    const elapsed = past || (isToday && swiped);
     if (swiped) { s.swipes++; if (past || isToday) swipesSoFar++; }
     const dow = d.getDay();
-    if (dow !== 0 && dow !== 6 && !(rec && EXCUSED.has(rec.type))) {
-      s.workdays++;
-      if (past || (isToday && swiped)) workdaysSoFar++;
-      else s.left++;
+    if (dow !== 0 && dow !== 6) {
+      if (elapsed) weekdaysSoFar++;
+      if (!(rec && EXCUSED.has(rec.type))) {
+        s.workdays++;
+        if (elapsed) workdaysSoFar++;
+        else s.left++;
+      }
     }
     d.setDate(d.getDate() + 1);
   }
   s.required = s.weekly ? Math.ceil(WEEKLY_TARGET * s.workdays / 5 - 1e-9) : null;
   s.pace = workdaysSoFar ? swipesSoFar / workdaysSoFar * 5 : null;
+  s.rawPace = weekdaysSoFar ? swipesSoFar / weekdaysSoFar * 5 : null;
   return s;
 }
 
@@ -182,12 +188,17 @@ function renderTarget(tile, bar, sub, s, period) {
   else if (needed > s.left * WEEKLY_TARGET / 5) tile.classList.add('warn');
 }
 
-// Avg/week tile: pace so far against the weekly target.
-function renderPace(tile, valueEl, subEl, s) {
-  valueEl.textContent = s.pace == null ? '—' : fmtAvg(s.pace);
+// Avg/week tile: pace so far against the weekly target, once with time off excused and once
+// with every weekday counted.
+function renderPace(valueEl, rawEl, subEl, s) {
+  setPace(valueEl, s.pace);
+  setPace(rawEl, s.rawPace);
   subEl.textContent = `so far · target ≥ ${WEEKLY_TARGET}`;
-  tile.classList.remove('ok', 'bad');
-  if (s.pace != null) tile.classList.add(s.pace >= WEEKLY_TARGET ? 'ok' : 'bad');
+}
+function setPace(el, v) {
+  el.textContent = v == null ? '—' : fmtAvg(v);
+  el.classList.remove('ok', 'bad');
+  if (v != null) el.classList.add(v >= WEEKLY_TARGET ? 'ok' : 'bad');
 }
 
 // ── Render ───────────────────────────────────────────────────────────────────
@@ -236,7 +247,7 @@ function renderTiles() {
   $('qCount').textContent = qs.swipes;
   $('qTarget').textContent = qs.required;
   renderTarget($('tileQuarter'), $('qBar'), $('qSub'), qs, 'quarter');
-  renderPace($('tileQuarterAvg'), $('qAvg'), $('qAvgSub'), qs);
+  renderPace($('qAvg'), $('qAvgRaw'), $('qAvgSub'), qs);
 
   // Month: same
   const mStart = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -246,7 +257,7 @@ function renderTiles() {
   $('mCount').textContent = ms.swipes;
   $('mTarget').textContent = ms.required;
   renderTarget($('tileMonth'), $('mBar'), $('mSub'), ms, 'month');
-  renderPace($('tileMonthAvg'), $('mAvg'), $('mAvgSub'), ms);
+  renderPace($('mAvg'), $('mAvgRaw'), $('mAvgSub'), ms);
 
   // PTO (calendar year)
   const yStart = new Date(today.getFullYear(), 0, 1);
