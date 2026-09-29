@@ -17,6 +17,12 @@ Every day
 - Use "Mark today as…", or click any calendar day, for PTO, flex, float, holidays or other
   days off. Days off lower that month's and quarter's target.
 
+Taskbar button (Windows)
+- Press "Taskbar button" in My targets and follow the four steps (about a minute). Afterwards,
+  one click on the taskbar opens the tracker in its own window and badges you in for today.
+  Clicking it again the same day changes nothing.
+- Keep "Badge Tracker.html" where it is; if you move it, make the button again.
+
 Reading the tiles
 - This Month / This Quarter: office days so far against what you need, how many more, and the
   workdays left. Amber means you're behind pace; red means the target can't be reached anymore.

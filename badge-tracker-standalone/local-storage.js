@@ -78,4 +78,4 @@ $('restoreFile').addEventListener('change', async e => {
   if (file) restoreFrom(await file.text());
 });
 
-startTracker(localStore);
+const trackerReady = startTracker(localStore);   // taskbar.js waits on this

@@ -2,7 +2,8 @@
 """Build "Badge Tracker.html", the shareable single-file Badge Tracker, from the site's page.
 
 Takes badges.html, drops the parts marked site-only (nav, sign-in, Supabase), inlines style.css,
-badges.css and badges.js, and adds local-storage.js so entries are saved in the browser.
+badges.css and badges.js, and adds local-storage.js (entries saved in the browser) and taskbar.js
+(the Windows taskbar badge-in button).
 Re-run after changing the tracker:  python3 badge-tracker-standalone/build.py
 """
 import pathlib
@@ -30,7 +31,8 @@ for css in ('style.css', 'badges.css'):
     html = replace_once(html, f'<link rel="stylesheet" href="{css}" />', f'<style>\n{read(ROOT / css)}</style>')
 html = replace_once(html, '<script src="badges.js"></script>',
                     f'<script>\n{read(ROOT / "badges.js")}</script>\n'
-                    f'  <script>\n{read(HERE / "local-storage.js")}</script>')
+                    f'  <script>\n{read(HERE / "local-storage.js")}</script>\n'
+                    f'  <script>\n{read(HERE / "taskbar.js")}</script>')
 
 # Nothing personal or site-specific may ship in the shared file.
 for leak in ('supabase.co', 'sb_publishable', 'vercel.app', 'claude.ai', 'drive.google', 'Center of Excellence', '<script src='):
