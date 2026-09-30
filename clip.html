@@ -98,6 +98,17 @@
         <ul id="file-list" class="file-list"></ul>
       </div>
 
+      <div class="field" id="local-field" hidden>
+        <label>Also save on this Mac <span style="color:var(--muted);font-weight:400">(Chrome / Edge)</span></label>
+        <div class="local-row">
+          <span id="local-status" class="local-status">Off</span>
+          <button type="button" id="local-allow-btn" class="btn btn-ghost btn-sm" hidden>Allow</button>
+          <button type="button" id="local-pick-btn" class="btn btn-ghost btn-sm">Choose folder&hellip;</button>
+          <button type="button" id="local-clear-btn" class="btn btn-danger" title="Stop copying to this Mac" hidden>&#10005;</button>
+        </div>
+        <div class="drop-zone-hint" style="margin-top:0">Pick this Mac's <code>workpm/projects</code> folder. Files go into the same project subfolder the Mac mini uses.</div>
+      </div>
+
       <div class="field">
         <button id="save-btn" class="btn btn-primary btn-full">Save Clip</button>
         <div id="save-msg" class="save-msg"></div>

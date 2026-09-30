@@ -311,6 +311,22 @@ label {
   flex: none;
 }
 
+/* ── Local copy (this Mac) ── */
+[hidden] { display: none !important; }
+.local-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.local-status { font-size: 12px; color: var(--muted); }
+.local-status.ok  { color: var(--success); }
+.local-status.ask { color: var(--warning); }
+.drop-zone-hint code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+}
+
 /* ── Save message ── */
 .save-msg {
   font-size: 12px;
@@ -319,6 +335,7 @@ label {
 }
 .save-msg.success { color: var(--success); }
 .save-msg.error   { color: var(--danger); }
+.save-msg.warning { color: var(--warning); }
 
 /* ── Right panel sections ── */
 .section {
