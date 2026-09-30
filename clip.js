@@ -2,12 +2,24 @@
 const SUPABASE_URL = 'https://sztatmknjyzzyzngvpff.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_GvPXZ8AVgix3aZ2UDS0YRQ_ktlLvMtB';
 
+// ── Local copy config ─────────────────────────────────────────────────────────
+// Chrome and Edge can write straight into a folder on this Mac through the File
+// System Access API (Safari, Firefox and phones cannot, so the option is hidden
+// there). The folder the user picks stands in for the Mac mini's projects root,
+// and each clip lands in the same subfolder sync/sync.js would use over there.
+const LOCAL_BASE_PATH = '/users/steve/workpm/projects';
+const NEW_FILES_DIR   = 'New_Files';
+const TYPE_FOLDERS    = { slack: 'Slack', email: 'Email', teams: 'Teams', meetings: 'Meetings', documents: 'Documents' };
+const LOCAL_SUPPORTED = typeof window.showDirectoryPicker === 'function';
+const LOCAL_IDB       = { name: 'clipboard-local', store: 'handles', key: 'projects-root' };
+
 // ── State ─────────────────────────────────────────────────────────────────────
 let db        = null;
 let projects  = [];
 let pendingFiles = [];   // File objects staged for upload
 let activeType = 'meetings';
 let activeDest = 'new';  // 'new' | 'current'
+let localRoot  = null;   // FileSystemDirectoryHandle for this Mac's projects folder, if chosen
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 function showApp() { document.getElementById('loginOverlay').classList.add('hidden'); }
@@ -60,6 +72,7 @@ async function init() {
   }
   await loadProjects();
   await loadRecentClips();
+  await loadLocalRoot();
   setupEventListeners();
 }
 
@@ -207,6 +220,167 @@ async function pasteFromClipboardButton() {
   }
 }
 
+// ── Local copy (this Mac) ─────────────────────────────────────────────────────
+// A directory handle survives reloads only if it is stored in IndexedDB, so a
+// tiny key/value store holds the one handle this page needs.
+function idbOpen() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(LOCAL_IDB.name, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore(LOCAL_IDB.store);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror   = () => reject(req.error);
+  });
+}
+
+async function idbRun(mode, fn) {
+  const idb = await idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx  = idb.transaction(LOCAL_IDB.store, mode);
+    const req = fn(tx.objectStore(LOCAL_IDB.store));
+    req.onsuccess = () => resolve(req.result);
+    req.onerror   = () => reject(req.error);
+  });
+}
+
+async function loadLocalRoot() {
+  if (!LOCAL_SUPPORTED) { renderLocalStatus(); return; }
+  try {
+    localRoot = (await idbRun('readonly', s => s.get(LOCAL_IDB.key))) || null;
+  } catch (err) {
+    console.warn('Could not restore local folder:', err);
+    localRoot = null;
+  }
+  await renderLocalStatus();
+}
+
+async function localPermission() {
+  if (!localRoot) return 'none';
+  try { return await localRoot.queryPermission({ mode: 'readwrite' }); }
+  catch { return 'prompt'; }
+}
+
+// Must run inside a click handler: Chrome only shows the permission bubble
+// during a user gesture.
+async function ensureLocalPermission() {
+  if (!localRoot) return false;
+  if ((await localPermission()) === 'granted') return true;
+  try {
+    return (await localRoot.requestPermission({ mode: 'readwrite' })) === 'granted';
+  } catch {
+    return false;
+  }
+}
+
+async function pickLocalFolder() {
+  try {
+    const handle = await window.showDirectoryPicker({ id: 'workpm-projects', mode: 'readwrite' });
+    localRoot = handle;
+    await idbRun('readwrite', s => s.put(handle, LOCAL_IDB.key));
+    showMsg(`Clips will also be copied into "${handle.name}" on this Mac.`, 'success');
+  } catch (err) {
+    if (err.name !== 'AbortError') showMsg('Could not use that folder: ' + (err.message || err), 'error');
+  }
+  await renderLocalStatus();
+}
+
+async function allowLocalFolder() {
+  const ok = await ensureLocalPermission();
+  if (!ok) showMsg('Permission for the local folder was not granted.', 'error');
+  await renderLocalStatus();
+}
+
+async function clearLocalFolder() {
+  localRoot = null;
+  try { await idbRun('readwrite', s => s.delete(LOCAL_IDB.key)); } catch {}
+  showMsg('Clips will no longer be copied to this Mac.', '');
+  await renderLocalStatus();
+}
+
+async function renderLocalStatus() {
+  const field = document.getElementById('local-field');
+  if (!LOCAL_SUPPORTED) { field.hidden = true; return; }
+  field.hidden = false;
+
+  const status = document.getElementById('local-status');
+  const allow  = document.getElementById('local-allow-btn');
+  const pick   = document.getElementById('local-pick-btn');
+  const clear  = document.getElementById('local-clear-btn');
+
+  if (!localRoot) {
+    status.textContent = 'Off';
+    status.className = 'local-status';
+    allow.hidden = true; clear.hidden = true;
+    pick.textContent = 'Choose folder…';
+    return;
+  }
+  const perm = await localPermission();
+  if (perm === 'granted') {
+    status.textContent = '✓ ' + localRoot.name;
+    status.className = 'local-status ok';
+    allow.hidden = true;
+  } else {
+    status.textContent = localRoot.name + ' · needs permission';
+    status.className = 'local-status ask';
+    allow.hidden = false;
+  }
+  clear.hidden = false;
+  pick.textContent = 'Change…';
+}
+
+// Same rules as sync/sync.js: 'current' → {project}/Current, otherwise
+// {project}/{subfolder or New_Files}/{Type}. Returns the path segments under
+// the picked root, or null when the project lives outside the default root on
+// the Mac mini (a custom base_path), since that has no counterpart here.
+function localDirSegments(project, dest, type) {
+  if (!project || !project.folder_name) return null;
+  const base = (project.base_path || '').replace(/\/+$/, '').toLowerCase();
+  if (base && base !== LOCAL_BASE_PATH) return null;
+  if (dest === 'current') return [project.folder_name, 'Current'];
+  const segs = [project.folder_name, project.subfolder || NEW_FILES_DIR];
+  if (TYPE_FOLDERS[type]) segs.push(TYPE_FOLDERS[type]);
+  return segs;
+}
+
+// Copied from sync/sync.js so both machines produce the same markdown filename.
+function slugify(str) {
+  return str
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .slice(0, 60);
+}
+
+async function writeLocalFile(dir, name, data) {
+  const fh = await dir.getFileHandle(name, { create: true });
+  const w  = await fh.createWritable();
+  await w.write(data);
+  await w.close();
+}
+
+// Writes the clip into the matching folder on this Mac. `clip` is the row
+// Supabase returned, so created_at matches what sync.js will use for the name.
+async function writeLocalCopies(clip, project, files) {
+  const segs = localDirSegments(project, clip.file_destination, clip.clip_type);
+  if (!segs) {
+    return { skipped: project?.base_path ? 'project uses a custom base path' : 'project has no folder name' };
+  }
+  let dir = localRoot;
+  for (const s of segs) dir = await dir.getDirectoryHandle(s, { create: true });
+
+  const written = [];
+  if (clip.content && clip.content.trim()) {
+    const name = `${clip.created_at.slice(0, 10)}-${slugify(clip.title)}.md`;
+    await writeLocalFile(dir, name, clip.content.trim());
+    written.push(name);
+  }
+  for (const f of files) {
+    await writeLocalFile(dir, f.name, f);
+    written.push(f.name);
+  }
+  return { written, dir: segs.join('/') };
+}
+
 // ── Save clip ─────────────────────────────────────────────────────────────────
 async function saveClip() {
   const projectId  = document.getElementById('project-select').value;
@@ -228,6 +402,11 @@ async function saveClip() {
   btn.disabled = true;
   btn.textContent = 'Saving…';
   showMsg('', '');
+
+  // Ask for local-folder permission now, while this click still counts as a
+  // user gesture. After the uploads finish Chrome would refuse to prompt.
+  const copyLocally = await ensureLocalPermission();
+  if (localRoot) renderLocalStatus();
 
   try {
     // 1. Upload files first using a temp ID, so we don't create a dangling clip row on failure
@@ -256,11 +435,27 @@ async function saveClip() {
       throw insertErr;
     }
 
+    // 3. Copy into the matching folder on this Mac (Chrome / Edge, when set up)
+    let localNote = '', localFailed = false;
+    if (copyLocally) {
+      const project = projects.find(p => p.id === projectId);
+      try {
+        const r = await writeLocalCopies(clip, project, pendingFiles);
+        localNote = r.skipped ? ` Not copied to this Mac: ${r.skipped}.` : ` Copied to ${r.dir} on this Mac.`;
+      } catch (err) {
+        localNote = ` Copy to this Mac failed: ${err.message || err}`;
+        localFailed = true;
+      }
+    } else if (localRoot) {
+      localNote = ' Not copied to this Mac: folder permission was not granted.';
+      localFailed = true;
+    }
+
     // 4. Reset form
     document.getElementById('clip-title').value = '';
     document.getElementById('clip-content').value = '';
     clearFiles();
-    showMsg('Clip saved! Will sync to Mac mini within 5 minutes.', 'success');
+    showMsg('Clip saved! Will sync to Mac mini within 5 minutes.' + localNote, localFailed ? 'warning' : 'success');
     await loadRecentClips();
 
   } catch (err) {
@@ -350,6 +545,11 @@ function setupEventListeners() {
 
   // Save button
   document.getElementById('save-btn').addEventListener('click', saveClip);
+
+  // Local copy folder (Chrome / Edge only; the field stays hidden elsewhere)
+  document.getElementById('local-pick-btn').addEventListener('click', pickLocalFolder);
+  document.getElementById('local-allow-btn').addEventListener('click', allowLocalFolder);
+  document.getElementById('local-clear-btn').addEventListener('click', clearLocalFolder);
 
   // File input
   document.getElementById('file-input').addEventListener('change', e => {
