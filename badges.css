@@ -71,6 +71,7 @@ body { overflow: auto; }
   padding: 4px 6px;
   font-size: 14px;
 }
+.settings input#setCarry { width: 80px; }   /* room for 34.67 beside the number spinner */
 .settings-actions { margin-left: auto; display: flex; gap: 6px; }
 
 /* Tiles */

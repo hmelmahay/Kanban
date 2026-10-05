@@ -10,15 +10,19 @@
 const WEEKLY_RULE_START = new Date(2026, 8, 28);
 const EXCUSED = new Set(['pto', 'flex', 'float', 'holiday', 'off']);
 
-// Weekly target and yearly allotments, set on screen and kept in this browser.
+// Weekly target and yearly allotments, set on screen and kept in this browser. `carry` is PTO
+// carried over from the year before, in hours as the badge report gives it; the PTO tile adds it
+// to the yearly allotment at HOURS_PER_DAY hours a day.
 const SETTINGS_KEY = 'badge_settings_v1';
-const DEFAULT_SETTINGS = { weekly: 3.5, pto: 20, flex: 8, float: 3 };
+const DEFAULT_SETTINGS = { weekly: 3.5, pto: 20, flex: 8, float: 3, carry: 0 };
 const SETTING_FIELDS = {   // setting: [input id, min, max]
   weekly: ['setWeekly', 0.5, 5],
   pto: ['setPto', 0, 365],
   flex: ['setFlex', 0, 365],
-  float: ['setFloat', 0, 365]
+  float: ['setFloat', 0, 365],
+  carry: ['setCarry', 0, 2000]
 };
+const HOURS_PER_DAY = 8;
 
 const DAY_LABELS = { swipe: 'Swipe', not_swipe: 'No swipe', pto: 'PTO', flex: 'Flex', float: 'Float', holiday: 'Holiday', off: 'Off' };
 
@@ -47,6 +51,12 @@ function loadSettings() {
 }
 function saveSettings() {
   try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) { /* storage unavailable */ }
+}
+// Lets the site script change a default before entries load, e.g. this year's PTO carryover.
+// A value saved from the screen still wins.
+function setDefaults(overrides) {
+  Object.assign(DEFAULT_SETTINGS, overrides);
+  settings = loadSettings();
 }
 function renderSettings() {
   for (const [k, [id]] of Object.entries(SETTING_FIELDS)) $(id).value = settings[k];
@@ -150,6 +160,8 @@ function periodStats(start, end) {
 
 // Rounds down so 3.46 shows as 3.4, never as a 3.5 that still misses the target.
 const fmtAvg = v => (Math.floor(v * 10 + 1e-9) / 10).toFixed(1);
+// Day counts that hours carried over can make fractional: 24.33, never 24.33375.
+const fmtDays = v => String(Math.round(v * 100) / 100);
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
 // "X / N" tile: days still needed, workdays left, bar, and color. Warn when behind the pace
@@ -237,14 +249,22 @@ function renderTiles() {
   renderTarget($('tileMonth'), $('mBar'), $('mSub'), ms, 'month');
   renderPace($('mAvg'), $('mAvgRaw'), $('mAvgSub'), ms);
 
-  // PTO (calendar year)
+  // PTO (calendar year): the yearly allotment plus the hours carried over from the year before
   const yStart = new Date(today.getFullYear(), 0, 1);
   const yEnd = new Date(today.getFullYear(), 11, 31);
   $('ptoYear').textContent = today.getFullYear();
   const ptoUsed = countInRange('pto', yStart, yEnd);
+  const carryDays = settings.carry / HOURS_PER_DAY;
+  const ptoQuota = settings.pto + carryDays;
   $('ptoUsed').textContent = ptoUsed;
-  $('ptoQuota').textContent = settings.pto;
-  $('ptoSub').textContent = `${settings.pto - ptoUsed} days remaining`;
+  $('ptoQuota').textContent = fmtDays(ptoQuota);
+  const ptoSub = $('ptoSub');
+  ptoSub.textContent = `${fmtDays(ptoQuota - ptoUsed)} days remaining`
+    + (settings.carry ? ` · ${settings.carry} h carried over` : '');
+  ptoSub.title = settings.carry
+    ? `${settings.pto} days + ${settings.carry} hours carried over from ${today.getFullYear() - 1}`
+      + ` = ${fmtDays(ptoQuota)} days at ${HOURS_PER_DAY} hours a day`
+    : '';
 
   // Flex (Feb 20 - Feb 19)
   const fy = flexYearOf(today);

@@ -7,7 +7,8 @@ Getting started
 1. Save "Badge Tracker.html" somewhere you'll find it (Documents, Desktop or OneDrive).
 2. Double-click it. It opens in your browser; bookmark it if you like.
 3. Fill in "My targets" at the top: the office days per week you need (3.5 unless yours
-   differs) and your PTO, flex and float allowances.
+   differs), your PTO, flex and float allowances, and any PTO hours carried over from last
+   year (added to this year's PTO at 8 hours a day).
 4. Starting partway through a quarter? Click your earlier days on the calendar and mark your
    office days (Swipe) and days off, so this month's and quarter's numbers are right.
 Works best in Chrome or Edge.

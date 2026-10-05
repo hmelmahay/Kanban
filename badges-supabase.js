@@ -7,6 +7,13 @@ const SUPABASE_KEY = 'sb_publishable_GvPXZ8AVgix3aZ2UDS0YRQ_ktlLvMtB';
 
 let db = null;
 
+// ── Site defaults ─────────────────────────────────────────────────────────────
+// PTO hours carried over from the year before, by year, from the badge report. The PTO tile
+// adds this year's to the allotment until it's changed in My targets; like the other targets, a
+// changed value stays in this browser, so set it again each January.
+const PTO_CARRYOVER_HOURS = { 2026: 34.67 };
+setDefaults({ carry: PTO_CARRYOVER_HOURS[new Date().getFullYear()] || 0 });
+
 // ── Auth ─────────────────────────────────────────────────────────────────────
 function showApp() { $('loginOverlay').classList.add('hidden'); }
 function showLogin(msg) {
